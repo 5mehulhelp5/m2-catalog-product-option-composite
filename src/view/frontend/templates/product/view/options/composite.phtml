@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types=1);
+
+use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+/** @var Php $this */
+/** @var Composite $block */
+?>
+
+<script type="text/x-magento-init">
+    {
+        "#product-options-wrapper": {
+            "productOptionsComposite": {
+                "config": <?= /* @noEscape */ $block->getConfig(); ?>
+            }
+        }
+    }
+</script>
