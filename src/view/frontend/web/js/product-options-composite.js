@@ -47,8 +47,12 @@ define([
 
                                         if (show) {
                                             option.show();
+                                            option.addClass('product-options-composite-show');
+                                            option.removeClass('product-options-composite-hide');
                                         } else {
                                             option.hide();
+                                            option.addClass('product-options-composite-hide');
+                                            option.removeClass('product-options-composite-show');
                                         }
                                     }
                                 });
