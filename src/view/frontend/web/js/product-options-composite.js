@@ -24,57 +24,64 @@ define([
             var self = this;
 
             domReady(function() {
-                $('.column.main').on('swatch.changed', function (event, selectedProductId) {
-                    $.each(self.options.config, function(optionId, optionData) {
-                        var option = $('#product-option-' + optionId);
-                        var select = option.find('#select_' + optionId);
+                $('.column.main').on('swatch.changed bundle.changed', function (event, selectedProductIds) {
+                    self.handleAllowHideProductIds(
+                        Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
+                });
+            });
+        },
 
-                        if (select.length > 0) {
-                            var options = select.find('option');
+        handleAllowHideProductIds: function handleAllowHideProductIds(selectedProductIds) {
+            $.each(this.options.config.allowHideProductIds, function(optionId, optionData) {
+                var option = $('#product-option-' + optionId);
+                var select = option.find('#select_' + optionId);
 
-                            $.each(optionData, function(optionValueId, productIds) {
-                                options.each(function() {
-                                    var option = $(this);
-                                    var optionValue = option.val();
+                if (select.length > 0) {
+                    var options = select.find('option');
 
-                                    if (optionValue === optionValueId) {
-                                        var show = false;
-                                        if (selectedProductId) {
-                                            if (productIds.indexOf(selectedProductId) !== -1) {
-                                                show = true;
-                                            }
+                    $.each(optionData, function(optionValueId, productIds) {
+                        options.each(function() {
+                            var option = $(this);
+                            var optionValue = option.val();
+
+                            if (optionValue === optionValueId) {
+                                var show = false;
+                                if (selectedProductIds) {
+                                    $.each(selectedProductIds, function(key, selectedProductId) {
+                                        if (productIds.indexOf(selectedProductId) !== -1) {
+                                            show = true;
                                         }
-
-                                        if (show) {
-                                            option.show();
-                                            option.addClass('product-options-composite-show');
-                                            option.removeClass('product-options-composite-hide');
-                                        } else {
-                                            option.hide();
-                                            option.addClass('product-options-composite-hide');
-                                            option.removeClass('product-options-composite-show');
-                                        }
-                                    }
-                                });
-                            });
-
-                            var availableOptions = 0;
-                            options.each(function() {
-                                if ($(this).css('display') !== 'none' && $(this).val()) {
-                                    availableOptions++;
+                                    });
                                 }
-                            });
 
-                            if (availableOptions === 0) {
-                                option.hide();
-                                select.val('');
-                                select.trigger('change');
-                            } else {
-                                option.show();
+                                if (show) {
+                                    option.show();
+                                    option.addClass('product-options-composite-show');
+                                    option.removeClass('product-options-composite-hide');
+                                } else {
+                                    option.hide();
+                                    option.addClass('product-options-composite-hide');
+                                    option.removeClass('product-options-composite-show');
+                                }
                             }
+                        });
+                    });
+
+                    var availableOptions = 0;
+                    options.each(function() {
+                        if ($(this).css('display') !== 'none' && $(this).val()) {
+                            availableOptions++;
                         }
                     });
-                });
+
+                    if (availableOptions === 0) {
+                        option.hide();
+                        select.val('');
+                        select.trigger('change');
+                    } else {
+                        option.show();
+                    }
+                }
             });
         }
     });

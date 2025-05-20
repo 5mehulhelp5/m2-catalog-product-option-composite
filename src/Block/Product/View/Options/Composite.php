@@ -74,10 +74,8 @@ class Composite extends Template
                     $allowHideProductIds = $optionValue->getData('allow_hide_product_ids');
 
                     if (! $this->variables->isEmpty($allowHideProductIds)) {
-                        $config[ $option->getId() ][ $optionValue->getId() ] = explode(
-                            ',',
-                            $allowHideProductIds
-                        );
+                        $config[ 'allowHideProductIds' ][ $option->getId() ][ $optionValue->getId() ] =
+                            $allowHideProductIds;
                     }
                 }
             }

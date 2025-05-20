@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Infrangible\CatalogProductOptionComposite\Plugin\Catalog\Ui\DataProvider\Product\Form\Modifier;
 
 use FeWeDev\Base\Arrays;
+use Magento\Bundle\Model\Option;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Model\Locator\LocatorInterface;
 use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
@@ -65,6 +67,36 @@ class CustomOptions
                     )
                 ];
             }
+        } elseif ($typeInstance instanceof Type) {
+            $options = $typeInstance->getOptionsCollection($product);
+
+            /** @var Option $option */
+            foreach ($options as $option) {
+                $optionSelections = $typeInstance->getSelectionsCollection(
+                    [$option->getId()],
+                    $product
+                );
+
+                $optionProductOptions = [];
+
+                /** @var Product $optionSelection */
+                foreach ($optionSelections as $optionSelection) {
+                    $optionProductOptions[] = [
+                        'value' => $optionSelection->getId(),
+                        'label' => sprintf(
+                            '%s [%s]',
+                            $optionSelection->getName(),
+                            $optionSelection->getSku()
+                        )
+                    ];
+                }
+
+                $productOptions[] = [
+                    'value'    => $option->getTitle(),
+                    'label'    => $option->getTitle(),
+                    'optgroup' => $optionProductOptions
+                ];
+            }
         }
 
         if (count($productOptions) === 0) {
@@ -107,19 +139,20 @@ class CustomOptions
             'arguments' => [
                 'data' => [
                     'config' => [
-                        'dataType'      => Text::NAME,
-                        'formElement'   => Select::NAME,
-                        'componentType' => Field::NAME,
-                        'component'     => 'Magento_Ui/js/form/element/ui-select',
-                        'elementTmpl'   => 'ui/grid/filters/elements/ui-select',
-                        'disableLabel'  => true,
-                        'filterOptions' => false,
-                        'selectType'    => 'optgroup',
-                        'multiple'      => false,
-                        'dataScope'     => $scopeName,
-                        'label'         => $label,
-                        'options'       => $productOptions,
-                        'sortOrder'     => $sortOrder
+                        'dataType'         => Text::NAME,
+                        'formElement'      => Select::NAME,
+                        'componentType'    => Field::NAME,
+                        'component'        => 'Magento_Ui/js/form/element/ui-select',
+                        'elementTmpl'      => 'ui/grid/filters/elements/ui-select',
+                        'disableLabel'     => true,
+                        'filterOptions'    => true,
+                        'multiple'         => true,
+                        'showCheckbox'     => true,
+                        'levelsVisibility' => 2,
+                        'dataScope'        => $scopeName,
+                        'label'            => $label,
+                        'options'          => $productOptions,
+                        'sortOrder'        => $sortOrder
                     ]
                 ]
             ]

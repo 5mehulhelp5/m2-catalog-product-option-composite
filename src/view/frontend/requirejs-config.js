@@ -7,6 +7,7 @@
 var config = {
     map: {
         '*': {
+            catalogProductCompositeBundle: 'Infrangible_CatalogProductOptionComposite/js/bundle',
             productOptionsComposite: 'Infrangible_CatalogProductOptionComposite/js/product-options-composite',
         }
     }
