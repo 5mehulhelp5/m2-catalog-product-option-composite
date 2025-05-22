@@ -82,9 +82,14 @@ class CustomOptions
                 /** @var Product $optionSelection */
                 foreach ($optionSelections as $optionSelection) {
                     $optionProductOptions[] = [
-                        'value' => $optionSelection->getId(),
+                        'value' => sprintf(
+                            '%s_%s',
+                            $option->getId(),
+                            $optionSelection->getId()
+                        ),
                         'label' => sprintf(
-                            '%s [%s]',
+                            '%s - %s [%s]',
+                            $option->getTitle(),
                             $optionSelection->getName(),
                             $optionSelection->getSku()
                         )

@@ -49,7 +49,10 @@ define([
                                     case 'hidden':
                                         selectedProductId = optionIndex[optionValue];
                                         if (selectedProductId) {
-                                            selectedProductIds.push(selectedProductId);
+                                            if (! (optionIndex in selectedProductIds)) {
+                                                selectedProductIds[optionId] = [];
+                                            }
+                                            selectedProductIds[optionId].push(selectedProductId);
                                         }
                                         break;
 
@@ -57,9 +60,10 @@ define([
                                         if (Array.isArray(optionValue)) {
                                             $.each(optionValue, function(key, optionValueValue) {
                                                 selectedProductId = optionIndex[optionValueValue];
-                                                if (selectedProductId) {
-                                                    selectedProductIds.push(selectedProductId);
+                                                if (! (optionIndex in selectedProductIds)) {
+                                                    selectedProductIds[optionId] = [];
                                                 }
+                                                selectedProductIds[optionId].push(selectedProductId);
                                             });
                                         }
                                         break;
@@ -69,7 +73,10 @@ define([
                                         if (element.is(':checked')) {
                                             selectedProductId = optionIndex[optionValue];
                                             if (selectedProductId) {
-                                                selectedProductIds.push(selectedProductId);
+                                                if (! (optionIndex in selectedProductIds)) {
+                                                    selectedProductIds[optionId] = [];
+                                                }
+                                                selectedProductIds[optionId].push(selectedProductId);
                                             }
                                         }
                                         break;

@@ -47,11 +47,30 @@ define([
                             if (optionValue === optionValueId) {
                                 var show = false;
                                 if (selectedProductIds) {
+                                    var isSubSelection = false;
                                     $.each(selectedProductIds, function(key, selectedProductId) {
-                                        if (productIds.indexOf(selectedProductId) !== -1) {
-                                            show = true;
+                                        if (Array.isArray(selectedProductId)) {
+                                            isSubSelection = true;
                                         }
                                     });
+
+                                    if (isSubSelection) {
+                                        $.each(selectedProductIds, function(groupId, selectedProductIdsList) {
+                                            if (selectedProductIdsList && productIds[groupId]) {
+                                                $.each(selectedProductIdsList, function(key, selectedProductId) {
+                                                    if (productIds[groupId].indexOf(selectedProductId) !== -1) {
+                                                        show = true;
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        $.each(selectedProductIds, function(key, selectedProductId) {
+                                            if (productIds.indexOf(selectedProductId) !== -1) {
+                                                show = true;
+                                            }
+                                        });
+                                    }
                                 }
 
                                 if (show) {

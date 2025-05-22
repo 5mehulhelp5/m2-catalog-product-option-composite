@@ -7,6 +7,7 @@ namespace Infrangible\CatalogProductOptionComposite\Block\Product\View\Options;
 use FeWeDev\Base\Json;
 use FeWeDev\Base\Variables;
 use Infrangible\Core\Helper\Registry;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Option;
 use Magento\Framework\View\Element\Template;
@@ -74,8 +75,27 @@ class Composite extends Template
                     $allowHideProductIds = $optionValue->getData('allow_hide_product_ids');
 
                     if (! $this->variables->isEmpty($allowHideProductIds)) {
-                        $config[ 'allowHideProductIds' ][ $option->getId() ][ $optionValue->getId() ] =
-                            $allowHideProductIds;
+                        $optionId = $option->getId();
+                        $optionValueId = $optionValue->getId();
+
+                        if ($option->getProduct()->getTypeId() === Type::TYPE_CODE) {
+                            foreach ($allowHideProductIds as $allowHideProductId) {
+                                if (preg_match(
+                                    '/[0-9]+_[0-9]+/',
+                                    $allowHideProductId
+                                )) {
+                                    [$bundleOptionId, $bundleProductId] = explode(
+                                        '_',
+                                        $allowHideProductId
+                                    );
+
+                                    $config[ 'allowHideProductIds' ][ $optionId ][ $optionValueId ][ $bundleOptionId ][] =
+                                        $bundleProductId;
+                                }
+                            }
+                        } else {
+                            $config[ 'allowHideProductIds' ][ $optionId ][ $optionValueId ] = $allowHideProductIds;
+                        }
                     }
                 }
             }

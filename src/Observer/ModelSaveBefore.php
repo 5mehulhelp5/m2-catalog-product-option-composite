@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Observer;
 
+use Infrangible\Core\Helper\Product;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Model\Product\Option\Value;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -15,6 +17,14 @@ use Magento\Framework\Event\ObserverInterface;
  */
 class ModelSaveBefore implements ObserverInterface
 {
+    /** @var Product */
+    protected $productHelper;
+
+    public function __construct(Product $productHelper)
+    {
+        $this->productHelper = $productHelper;
+    }
+
     /**
      * @throws \Exception
      */
@@ -26,8 +36,31 @@ class ModelSaveBefore implements ObserverInterface
             $allowHideProductIds = $object->getData('allow_hide_product_ids');
 
             if (is_array($allowHideProductIds)) {
-                foreach ($allowHideProductIds as $productId) {
-                    if (! is_numeric($productId)) {
+                foreach ($allowHideProductIds as $allowHideProductId) {
+                    $isValid = true;
+
+                    $product = $object->getOption()->getProduct();
+
+                    if (! $product) {
+                        $productId = $object->getOption()->getData('product_id');
+
+                        if ($productId) {
+                            $product = $this->productHelper->loadProduct(intval($productId));
+                        }
+                    }
+
+                    if ($product && $product->getTypeId() === Type::TYPE_CODE) {
+                        if (! preg_match(
+                            '/[0-9]+_[0-9]+/',
+                            $allowHideProductId
+                        )) {
+                            $isValid = false;
+                        }
+                    } elseif (! is_numeric($allowHideProductId)) {
+                        $isValid = false;
+                    }
+
+                    if (! $isValid) {
                         throw new \Exception(
                             sprintf(
                                 'No valid product id(s) were provided for option with title: %s and value with title: %s',
@@ -45,6 +78,8 @@ class ModelSaveBefore implements ObserverInterface
                         $allowHideProductIds
                     )
                 );
+            } else {
+                $object->setData('allow_hide_product_ids');
             }
         }
     }
