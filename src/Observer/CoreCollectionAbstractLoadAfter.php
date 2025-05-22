@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Infrangible\CatalogProductOptionComposite\Observer;
 
 use Magento\Catalog\Model\Product\Option\Value;
-use Magento\Catalog\Model\ResourceModel\Product\Option\Value\Collection;
+use Magento\Catalog\Model\ResourceModel\Product\Option\Collection;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 
@@ -20,7 +20,9 @@ class CoreCollectionAbstractLoadAfter implements ObserverInterface
     {
         $collection = $observer->getData('collection');
 
-        if ($collection instanceof Collection) {
+        if ($collection instanceof Collection ||
+            $collection instanceof \Magento\Catalog\Model\ResourceModel\Product\Option\Value\Collection) {
+
             /** @var Value $object */
             foreach ($collection as $object) {
                 $allowHideProductIds = $object->getData('allow_hide_product_ids');

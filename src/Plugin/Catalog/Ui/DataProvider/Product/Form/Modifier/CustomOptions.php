@@ -108,6 +108,29 @@ class CustomOptions
             return $meta;
         }
 
+        $meta = $this->arrays->addDeepValue(
+            $meta,
+            [
+                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GROUP_CUSTOM_OPTIONS_NAME,
+                'children',
+                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GRID_OPTIONS_NAME,
+                'children',
+                'record',
+                'children',
+                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::CONTAINER_OPTION,
+                'children',
+                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::CONTAINER_COMMON_NAME,
+                'children',
+                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME
+            ],
+            $this->getProductIdsFieldConfig(
+                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME,
+                __('Allow & Hide')->render(),
+                $productOptions,
+                200
+            )
+        );
+
         return $this->arrays->addDeepValue(
             $meta,
             [

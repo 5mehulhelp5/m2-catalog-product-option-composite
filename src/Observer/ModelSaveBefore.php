@@ -6,6 +6,7 @@ namespace Infrangible\CatalogProductOptionComposite\Observer;
 
 use Infrangible\Core\Helper\Product;
 use Magento\Bundle\Model\Product\Type;
+use Magento\Catalog\Model\Product\Option;
 use Magento\Catalog\Model\Product\Option\Value;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -32,17 +33,18 @@ class ModelSaveBefore implements ObserverInterface
     {
         $object = $observer->getData('object');
 
-        if ($object instanceof Value) {
+        if ($object instanceof Option || $object instanceof Value) {
             $allowHideProductIds = $object->getData('allow_hide_product_ids');
 
             if (is_array($allowHideProductIds)) {
                 foreach ($allowHideProductIds as $allowHideProductId) {
                     $isValid = true;
 
-                    $product = $object->getOption()->getProduct();
+                    $product = $object instanceof Option ? $object->getProduct() : $object->getOption()->getProduct();
 
                     if (! $product) {
-                        $productId = $object->getOption()->getData('product_id');
+                        $productId = $object instanceof Option ? $object->getData('product_id') :
+                            $object->getOption()->getData('product_id');
 
                         if ($productId) {
                             $product = $this->productHelper->loadProduct(intval($productId));
@@ -62,7 +64,10 @@ class ModelSaveBefore implements ObserverInterface
 
                     if (! $isValid) {
                         throw new \Exception(
-                            sprintf(
+                            $object instanceof Option ? sprintf(
+                                'No valid product id(s) were provided for option with title: %s',
+                                $object->getTitle()
+                            ) : sprintf(
                                 'No valid product id(s) were provided for option with title: %s and value with title: %s',
                                 $object->getOption()->getTitle(),
                                 $object->getTitle()

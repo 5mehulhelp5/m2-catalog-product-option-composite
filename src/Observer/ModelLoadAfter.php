@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Observer;
 
+use Magento\Catalog\Model\Product\Option;
 use Magento\Catalog\Model\Product\Option\Value;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -19,7 +20,7 @@ class ModelLoadAfter implements ObserverInterface
     {
         $object = $observer->getData('object');
 
-        if ($object instanceof Value) {
+        if ($object instanceof Option || $object instanceof Value) {
             $allowHideProductIds = $object->getData('allow_hide_product_ids');
 
             if (! is_array($allowHideProductIds)) {

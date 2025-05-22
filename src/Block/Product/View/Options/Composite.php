@@ -67,7 +67,31 @@ class Composite extends Template
 
         /** @var Option $option */
         foreach ($this->getProduct()->getOptions() as $option) {
+            $optionId = $option->getId();
             $optionValues = $option->getValues();
+
+            $allowHideProductIds = $option->getData('allow_hide_product_ids');
+
+            if (! $this->variables->isEmpty($allowHideProductIds)) {
+                if ($option->getProduct()->getTypeId() === Type::TYPE_CODE) {
+                    foreach ($allowHideProductIds as $allowHideProductId) {
+                        if (preg_match(
+                            '/[0-9]+_[0-9]+/',
+                            $allowHideProductId
+                        )) {
+                            [$bundleOptionId, $bundleProductId] = explode(
+                                '_',
+                                $allowHideProductId
+                            );
+
+                            $config[ 'allowHideProductIds' ][ $optionId ][ 'option' ][ $bundleOptionId ][] =
+                                $bundleProductId;
+                        }
+                    }
+                } else {
+                    $config[ 'allowHideProductIds' ][ $optionId ][ 'option' ] = $allowHideProductIds;
+                }
+            }
 
             if ($optionValues) {
                 /** @var Option\Value $optionValue */
@@ -75,7 +99,6 @@ class Composite extends Template
                     $allowHideProductIds = $optionValue->getData('allow_hide_product_ids');
 
                     if (! $this->variables->isEmpty($allowHideProductIds)) {
-                        $optionId = $option->getId();
                         $optionValueId = $optionValue->getId();
 
                         if ($option->getProduct()->getTypeId() === Type::TYPE_CODE) {
@@ -89,12 +112,13 @@ class Composite extends Template
                                         $allowHideProductId
                                     );
 
-                                    $config[ 'allowHideProductIds' ][ $optionId ][ $optionValueId ][ $bundleOptionId ][] =
+                                    $config[ 'allowHideProductIds' ][ $optionId ][ 'values' ][ $optionValueId ][ $bundleOptionId ][] =
                                         $bundleProductId;
                                 }
                             }
                         } else {
-                            $config[ 'allowHideProductIds' ][ $optionId ][ $optionValueId ] = $allowHideProductIds;
+                            $config[ 'allowHideProductIds' ][ $optionId ][ 'values' ][ $optionValueId ] =
+                                $allowHideProductIds;
                         }
                     }
                 }

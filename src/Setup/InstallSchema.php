@@ -29,7 +29,7 @@ class InstallSchema implements InstallSchemaInterface
 
         if (! $connection->tableColumnExists(
             $tableName,
-            'allow_hide_product_ids'
+            'allow_product_ids'
         )) {
             $connection->addColumn(
                 $tableName,
@@ -41,7 +41,12 @@ class InstallSchema implements InstallSchemaInterface
                     'comment'  => 'Allow Product Ids'
                 ]
             );
+        }
 
+        if (! $connection->tableColumnExists(
+            $tableName,
+            'allow_hide_product_ids'
+        )) {
             $connection->addColumn(
                 $tableName,
                 'allow_hide_product_ids',
@@ -52,7 +57,12 @@ class InstallSchema implements InstallSchemaInterface
                     'comment'  => 'Allow & Hide Product Ids'
                 ]
             );
+        }
 
+        if (! $connection->tableColumnExists(
+            $tableName,
+            'prohibit_product_ids'
+        )) {
             $connection->addColumn(
                 $tableName,
                 'prohibit_product_ids',
@@ -63,7 +73,12 @@ class InstallSchema implements InstallSchemaInterface
                     'comment'  => 'Prohibit Product Ids'
                 ]
             );
+        }
 
+        if (! $connection->tableColumnExists(
+            $tableName,
+            'prohibit_hide_product_ids'
+        )) {
             $connection->addColumn(
                 $tableName,
                 'prohibit_hide_product_ids',
