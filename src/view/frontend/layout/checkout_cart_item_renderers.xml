@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<!--
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="checkout.cart.item.renderers.bundle.actions">
+            <block class="Infrangible\CatalogProductOptionComposite\Block\Cart\Item\Renderer\Actions\QuoteItemBundle" name="checkout.cart.item.renderers.bundle.actions.quote_item_bundle" template="Infrangible_CatalogProductOptionComposite::cart/item/renderer/actions/quote_item_bundle.phtml" before="checkout.cart.item.renderers.bundle.actions.edit"/>
+        </referenceBlock>
+    </body>
+</page>

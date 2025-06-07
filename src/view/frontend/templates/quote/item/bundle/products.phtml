@@ -1,0 +1,34 @@
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products;
+use Magento\Bundle\Model\Option;
+use Magento\Catalog\Model\Product;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var Products $block */
+
+$itemBundleSelections = $block->getItemBundleSelections();
+?>
+
+<ol class="products list items product-items">
+    <?php foreach ($itemBundleSelections as $itemBundleSelection): ?>
+        <?php
+        /** @var Option $bundleOption */
+        $bundleOption = $itemBundleSelection[ 'option' ];
+        /** @var Product $product */
+        $product = $itemBundleSelection[ 'product' ];
+        ?>
+        <?= $block->getSelectionHtml($bundleOption, $product); ?>
+    <?php endforeach; ?>
+</ol>

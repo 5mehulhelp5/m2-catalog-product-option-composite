@@ -1,0 +1,26 @@
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+use Infrangible\CatalogProductOptionComposite\Block\Cart\Item\Renderer\Actions\QuoteItemBundle;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var QuoteItemBundle $block */
+?>
+
+<?php if ($block->isProductVisibleInSiteVisibility() && $block->showCompositeUrl()): ?>
+    <a class="action action-composite"
+       href="<?= $escaper->escapeUrl($block->getCompositeUrl()); ?>"
+       title="<?= $escaper->escapeHtmlAttr(__('Edit item options')); ?>">
+        <span><?= $escaper->escapeHtml(__('Edit Options')); ?></span>
+    </a>
+<?php endif ?>

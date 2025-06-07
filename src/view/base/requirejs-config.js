@@ -4,10 +4,12 @@
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
-.select2-container {
-    .select2-results__options {
-        li.product-options-composite-hide {
-            display: none;
+var config = {
+    config: {
+        mixins: {
+            'Magento_Catalog/js/price-utils': {
+                'Infrangible_CatalogProductOptionComposite/js/price-utils-mixin': true
+            }
         }
     }
-}
+};

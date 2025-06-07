@@ -1,0 +1,80 @@
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+& when (@media-common = true) {
+    .cart {
+        &.table-wrapper {
+            .actions-toolbar {
+                > .action-composite {
+                    position: absolute;
+                    right: 56px;
+                    top: 0;
+                    .lib-icon-font(
+                        '\e625',
+                        @_icon-font-size: 18px,
+                        @_icon-font-line-height: 20px,
+                        @_icon-font-text-hide: true,
+                        @_icon-font-color: @minicart-icons-color,
+                        @_icon-font-color-hover: @primary__color,
+                        @_icon-font-color-active: @minicart-icons-color
+                    );
+                }
+            }
+        }
+    }
+
+    .infrangible_catalogproductoptioncomposite-quote_item-bundle {
+        .cart-container {
+            .actions {
+                .action.primary.update {
+                    &:extend(.abs-button-l all);
+                }
+            }
+        }
+    }
+}
+
+.media-width(@extremum, @break) when (@extremum = 'min') and (@break = @screen__m) {
+    .infrangible_catalogproductoptioncomposite-quote_item-bundle.page-products.page-layout-1column {
+        .cart-container {
+            .form-cart {
+                width: 100%;
+                float: none;
+
+                .products-grid {
+                    .product-item.quote-item-bundle-selection {
+                        width: calc(~'(100% - 4%) / 3');
+
+                        .product-item-info {
+                            margin: 0 auto;
+                            width: 80%;
+                            padding: 9px;
+
+                            .product-image-container {
+                                display: block;
+                                margin: 0 auto;
+                            }
+
+                            .product-item-details {
+                                .product-options-price {
+                                    span.price {
+                                        &:before {
+                                            content: '+ ';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        .product-item-info:not(:hover) {
+                            padding: 10px 9px
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

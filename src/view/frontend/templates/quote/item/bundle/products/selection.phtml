@@ -1,0 +1,39 @@
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+
+declare(strict_types=1);
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection;
+use Magento\Catalog\Helper\Output;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var Selection $block */
+
+/** @var Output $helper */
+$helper = $this->helper(Output::class);
+
+$bundleOption = $block->getBundleOption();
+$product = $block->getProduct();
+?>
+
+<li class="item product product-item quote-item-bundle-selection" id="quote-item-bundle-selection-<?= /* @noEscape */ $bundleOption->getId(); ?>">
+    <div class="product-item-info" id="quote-item-bundle-selection-product-item-info-<?= /* @noEscape */ $bundleOption->getId(); ?>" data-container="product-grid">
+        <?php $productImage = $block->getImage($product, 'category_page_grid'); ?>
+        <?= $productImage->toHtml(); ?>
+        <div class="product details product-item-details">
+            <strong class="product name product-item-name">
+                <?=/* @noEscape */ $helper->productAttribute($product, $product->getName(), 'name'); ?>
+            </strong>
+            <?= /* @noEscape */ $block->getProductPrice($product); ?>
+            <?= $block->getOptionsHtml($bundleOption, $product); ?>
+        </div>
+    </div>
+</li>

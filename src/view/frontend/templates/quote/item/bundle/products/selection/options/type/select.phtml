@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection\Options\Type\Select;
+use Magento\Catalog\Api\Data\ProductCustomOptionInterface;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var Select $block */
+
+$option = $block->getOption();
+$class = $option->getIsRequire() ? ' required' : '';
+$hasContainer = $option->getType() == ProductCustomOptionInterface::OPTION_TYPE_RADIO ||
+    $option->getType() == ProductCustomOptionInterface::OPTION_TYPE_CHECKBOX;
+$item = $block->getItem();
+$valuesHtml = $block->getValuesHtml();
+?>
+
+<?php if ($valuesHtml): ?>
+    <div class="field<?= /* @noEscape */ $class ?>">
+        <label class="label" for="select_<?= $escaper->escapeHtmlAttr($option->getId()); ?>">
+            <span><?= $escaper->escapeHtml($option->getTitle()); ?></span>
+        </label>
+        <div class="control">
+            <?= $valuesHtml; ?>
+            <?php if ($option->getIsRequire()): ?>
+                <?php if ($hasContainer):?>
+                    <span id="item-<?= $escaper->escapeHtmlAttr($item->getId()); ?>-options-<?= $escaper->escapeHtmlAttr($option->getId()); ?>-container"></span>
+                <?php endif; ?>
+            <?php endif;?>
+        </div>
+    </div>
+<?php endif; ?>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Observer;
 
+use Infrangible\CatalogProductOptionComposite\Helper\Data;
 use Magento\Catalog\Model\Product\Option;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\Observer;
@@ -15,8 +16,16 @@ use Magento\Quote\Model\Quote\Item;
  * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
-class CatalogProductOptionPromoteItemOptionAvailable extends ItemOptionAvailable implements ObserverInterface
+class CatalogProductOptionPromoteItemOptionAvailable implements ObserverInterface
 {
+    /** @var Data */
+    protected $helper;
+
+    public function __construct(Data $helper)
+    {
+        $this->helper = $helper;
+    }
+
     public function execute(Observer $observer): void
     {
         /** @var Item $item */
@@ -31,9 +40,9 @@ class CatalogProductOptionPromoteItemOptionAvailable extends ItemOptionAvailable
         $isAvailable = $checkResult->getData('is_available');
 
         if ($isAvailable) {
-            $isAvailable = $this->isDataObjectAvailable(
-                $item,
-                $productOption
+            $isAvailable = $this->helper->isProductOptionAvailableForItem(
+                $productOption,
+                $item
             );
         }
 

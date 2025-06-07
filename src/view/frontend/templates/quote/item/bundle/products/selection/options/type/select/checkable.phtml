@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection\Options\Type\Select\Checkable;
+use Magento\Catalog\Api\Data\ProductCustomOptionInterface;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Helper\SecureHtmlRenderer;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var SecureHtmlRenderer $secureRenderer */
+/** @var Checkable $block */
+
+$option = $block->getOption();
+$item = $block->getItem();
+?>
+
+<?php if ($option): ?>
+    <?php
+    $configValue = $block->getPreconfiguredValue($option);
+    $optionType = $option->getType();
+    $arraySign = $optionType === ProductCustomOptionInterface::OPTION_TYPE_CHECKBOX ? '[]' : '';
+    $count = 1;
+    ?>
+
+    <div class="options-list nested" id="cart-<?= $escaper->escapeHtmlAttr($item->getId()); ?>-options-<?= $escaper->escapeHtmlAttr($option->getId()); ?>-list">
+        <?php if ($optionType === ProductCustomOptionInterface::OPTION_TYPE_RADIO && !$option->getIsRequire()): ?>
+            <div class="field choice admin__field admin__field-option">
+                <input type="radio"
+                       id="cart_<?= $escaper->escapeHtmlAttr($item->getId()); ?>_options_<?= $escaper->escapeHtmlAttr($option->getId()); ?>"
+                       class="radio admin__control-radio product-custom-option"
+                       name="cart[<?= $escaper->escapeHtmlAttr($item->getId()); ?>][options][<?= $escaper->escapeHtmlAttr($option->getId()); ?>]"
+                       data-selector="cart[<?= $escaper->escapeHtmlAttr($item->getId()); ?>][options][<?= $escaper->escapeHtmlAttr($option->getId()); ?>]"
+                       value=""
+                       checked="checked"
+                />
+                <?php if (! $block->getSkipJsReloadPrice()): ?>
+                    <?= /* @noEscape */ $secureRenderer->renderEventListenerAsTag(
+                        'onclick',
+                        'opConfig.reloadPrice()',
+                        'cart_' . $escaper->escapeHtmlAttr($item->getId()) . '_options_' . $escaper->escapeJs($option->getId())); ?>
+                <?php endif; ?>
+                <label class="label admin__field-label" for="cart_<?= $escaper->escapeHtmlAttr($item->getId()); ?>_options_<?= $escaper->escapeHtmlAttr($option->getId()) ?>">
+                    <span><?= $escaper->escapeHtml(__('None')); ?></span>
+                </label>
+            </div>
+        <?php endif; ?>
+
+        <?php foreach ($option->getValues() as $value): ?>
+            <?php
+            $count++;
+            $checked = $arraySign ? (is_array($configValue) && in_array(
+                $value->getOptionTypeId(),
+                $configValue
+            ) ? 'checked' : '') : ($configValue == $value->getOptionTypeId() ? 'checked' : '');
+            $dataSelector = 'cart[<?= $escaper->escapeHtmlAttr($item->getId()); ?>][options][' . $option->getId() . ']';
+            if ($arraySign) {
+                $dataSelector .= '[' . $value->getOptionTypeId() . ']';
+            }
+            ?>
+
+            <div class="field choice admin__field admin__field-option">
+                <input type="<?= $escaper->escapeHtmlAttr($optionType) ?>"
+                       class="<?= $optionType === ProductCustomOptionInterface::OPTION_TYPE_RADIO ? 'radio admin__control-radio' : 'checkbox admin__control-checkbox'; ?>
+                              <?= $option->getIsRequire() ? 'required': ''; ?>
+                              product-custom-option
+                              <?= $block->getSkipJsReloadPrice() ? '' : 'opConfig.reloadPrice()'; ?>"
+                       name="cart[<?= $escaper->escapeHtmlAttr($item->getId()); ?>][options][<?= $escaper->escapeHtmlAttr($option->getId()) ?>]<?= /* @noEscape */ $arraySign; ?>"
+                       id="cart_<?= $escaper->escapeHtmlAttr($item->getId()); ?>_options_<?= $escaper->escapeHtmlAttr($option->getId() . '_' . $count); ?>"
+                       value="<?= $escaper->escapeHtmlAttr($value->getOptionTypeId()); ?>"
+                       <?= $escaper->escapeHtml($checked); ?>
+                       data-selector="<?= $escaper->escapeHtmlAttr($dataSelector); ?>"
+                       price="<?= $escaper->escapeHtmlAttr($block->getCurrencyByStore($value)); ?>"
+                />
+                <label class="label admin__field-label"
+                       for="cart_<?= $escaper->escapeHtmlAttr($item->getId()); ?>_options_<?= $escaper->escapeHtmlAttr($option->getId() . '_' . $count); ?>">
+                    <span><?= $escaper->escapeHtml($value->getTitle()); ?></span>
+                    <?= /* @noEscape */ $block->formatPrice($value); ?>
+                </label>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>

@@ -17,86 +17,214 @@ define([
     $.widget('mage.productOptionsComposite', {
         options: globalOptions,
 
-        _create: function createProductOptionsComposite() {
+        _create: function() {
         },
 
-        _init: function initProductOptionsComposite() {
+        _init: function() {
             var self = this;
 
             domReady(function() {
                 $('.column.main').on('swatch.changed bundle.changed', function (event, selectedProductIds) {
-                    self.handleAllowHideProductIds(
+                    self.handleAllowHide(
                         Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
                 });
             });
         },
 
-        handleAllowHideProductIds: function handleAllowHideProductIds(selectedProductIds) {
+        handleAllowHide: function(selectedProductIds) {
             var self = this;
 
             $.each(this.options.config.allowHideProductIds, function(optionId, optionData) {
                 var option = $('#product-option-' + optionId);
-                var select = option.find('#select_' + optionId);
 
-                if (select.length > 0) {
-                    if (optionData.option) {
-                        var productIds = optionData.option;
-
-                        var show = self.isShow(selectedProductIds, productIds);
-
-                        if (show) {
-                            option.show();
-                        } else {
-                            option.hide();
-                            select.val('');
-                            select.trigger('change');
-                        }
-                    }
-
-                    if (optionData.values) {
-                        var options = select.find('option');
-
-                        $.each(optionData.values, function(optionValueId, productIds) {
-                            options.each(function() {
-                                var option = $(this);
-                                var optionValue = option.val();
-
-                                if (optionValue === optionValueId) {
-                                    var show = self.isShow(selectedProductIds, productIds);
-
-                                    if (show) {
-                                        option.show();
-                                        option.addClass('product-options-composite-show');
-                                        option.removeClass('product-options-composite-hide');
-                                    } else {
-                                        option.hide();
-                                        option.addClass('product-options-composite-hide');
-                                        option.removeClass('product-options-composite-show');
-                                    }
-                                }
-                            });
-                        });
-
-                        var availableOptions = 0;
-                        options.each(function() {
-                            if ($(this).css('display') !== 'none' && $(this).val()) {
-                                availableOptions++;
-                            }
-                        });
-
-                        if (availableOptions === 0) {
-                            option.hide();
-                            select.val('');
-                            select.trigger('change');
-                        } else {
-                            option.show();
-                        }
-                    }
-                }
+                self.handleAllowHideSelect(selectedProductIds, optionId, optionData, option);
+                self.handleAllowHideRadio(selectedProductIds, optionId, optionData, option);
+                self.handleAllowHideCheckbox(selectedProductIds, optionId, optionData, option);
             });
         },
 
-        isShow: function isShow(selectedProductIds, productIds) {
+        handleAllowHideSelect: function(selectedProductIds, optionId, optionData, option) {
+            var self = this;
+
+            var select = option.find('#select_' + optionId);
+
+            if (select.length > 0) {
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                    select.val('');
+                    select.trigger('change');
+                }
+                self.handleAllowHideSelectOptions(selectedProductIds, optionId, optionData, option, select);
+            }
+        },
+
+        handleAllowHideSelectOptions: function(selectedProductIds, optionId, optionData, option, select) {
+            var self = this;
+
+            if (optionData.values) {
+                var options = select.find('option');
+
+                $.each(optionData.values, function(optionValueId, productIds) {
+                    options.each(function() {
+                        var option = $(this);
+
+                        self.updateOptionValueElement(selectedProductIds, option, optionValueId, productIds);
+                    });
+                });
+
+                if (! self.updateOptionElement(option, options)) {
+                    select.val('');
+                    select.trigger('change');
+                }
+            }
+        },
+
+        handleAllowHideRadio: function(selectedProductIds, optionId, optionData, option) {
+            var self = this;
+
+            var radioButtons = option.find('input[type="radio"][name="options[' + optionId + ']"]');
+
+            if (radioButtons.length > 0) {
+                var noSelectionRadioButton;
+                radioButtons.each(function(key, value) {
+                    var radioButton = $(value);
+                    if (! radioButton.val()) {
+                        noSelectionRadioButton = radioButton;
+                    }
+                });
+
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                    if (noSelectionRadioButton && ! noSelectionRadioButton.is(':checked')) {
+                        noSelectionRadioButton.prop('checked', true);
+                        noSelectionRadioButton.trigger('change');
+                    }
+                }
+
+                if (optionData.values) {
+                    radioButtons.each(function(key, value) {
+                        var radioButton = $(value);
+                        self.handleAllowHideRadioButton(selectedProductIds, optionId, optionData, option, radioButton);
+                    });
+                    if (! self.updateOptionElement(option, radioButtons)) {
+                        if (noSelectionRadioButton && ! noSelectionRadioButton.is(':checked')) {
+                            noSelectionRadioButton.prop('checked', true);
+                            noSelectionRadioButton.trigger('change');
+                        }
+                    }
+                }
+            }
+        },
+
+        handleAllowHideRadioButton: function(selectedProductIds, optionId, optionData, option, radioButton) {
+            var self = this;
+
+            if (optionData.values) {
+                $.each(optionData.values, function(optionValueId, productIds) {
+                    self.updateOptionValueElement(selectedProductIds, radioButton, optionValueId, productIds);
+                });
+            }
+        },
+
+        handleAllowHideCheckbox: function(selectedProductIds, optionId, optionData, option) {
+            var self = this;
+
+            var checkboxButtons = option.find('input[type="checkbox"][name="options[' + optionId + '][]"]');
+
+            if (checkboxButtons.length > 0) {
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                    checkboxButtons.each(function(key, value) {
+                        var checkboxButton = $(value);
+                        if (checkboxButton.is(':checked')) {
+                            checkboxButton.prop('checked', false);
+                            checkboxButton.trigger('change');
+                        }
+                    });
+                }
+
+                if (optionData.values) {
+                    checkboxButtons.each(function(key, value) {
+                        var checkboxButton = $(value);
+                        self.handleAllowHideCheckboxButton(
+                            selectedProductIds, optionId, optionData, option, checkboxButton);
+                    });
+                    if (! self.updateOptionElement(option, checkboxButtons)) {
+                        checkboxButtons.each(function(key, value) {
+                            var checkboxButton = $(value);
+                            if (checkboxButton.is(':checked')) {
+                                checkboxButton.prop('checked', false);
+                                checkboxButton.trigger('change');
+                            }
+                        });
+                    }
+                }
+            }
+        },
+
+        handleAllowHideCheckboxButton: function(selectedProductIds, optionId, optionData, option, checkboxButton) {
+            var self = this;
+
+            if (optionData.values) {
+                $.each(optionData.values, function(optionValueId, productIds) {
+                    self.updateOptionValueElement(selectedProductIds, checkboxButton, optionValueId, productIds);
+                });
+            }
+        },
+
+        handleAllowHideOption: function(selectedProductIds, optionData, option) {
+            var self = this;
+
+            if (optionData.option) {
+                var productIds = optionData.option;
+
+                var selected = self.isSelected(selectedProductIds, productIds);
+
+                if (selected) {
+                    option.show();
+                    return true;
+                } else {
+                    option.hide();
+                    return false;
+                }
+            }
+        },
+
+        updateOptionElement: function(optionElement, optionValueElements) {
+            var availableOptionValues = 0;
+            optionValueElements.each(function() {
+                if ($(this).css('display') !== 'none' && $(this).val()) {
+                    availableOptionValues++;
+                }
+            });
+
+            if (availableOptionValues === 0) {
+                optionElement.hide();
+                return false;
+            } else {
+                optionElement.show();
+                return true;
+            }
+        },
+
+        updateOptionValueElement: function(selectedProductIds, optionValueElement, optionValueId, productIds) {
+            var self = this;
+
+            var optionValue = optionValueElement.val();
+
+            if (optionValue === optionValueId) {
+                var selected = self.isSelected(selectedProductIds, productIds);
+
+                if (selected) {
+                    optionValueElement.show();
+                    optionValueElement.addClass('product-options-composite-show');
+                    optionValueElement.removeClass('product-options-composite-hide');
+                } else {
+                    optionValueElement.hide();
+                    optionValueElement.addClass('product-options-composite-hide');
+                    optionValueElement.removeClass('product-options-composite-show');
+                }
+            }
+        },
+
+        isSelected: function(selectedProductIds, productIds) {
             var show = false;
 
             if (selectedProductIds) {
