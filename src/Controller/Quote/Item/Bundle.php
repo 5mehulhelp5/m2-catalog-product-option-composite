@@ -33,7 +33,7 @@ class Bundle extends Action implements ActionInterface
     public function __construct(
         Context $context,
         Session $checkoutSession,
-        Registry  $registryHelper,
+        Registry $registryHelper,
         PageFactory $resultPageFactory
     ) {
         parent::__construct($context);
@@ -49,16 +49,31 @@ class Bundle extends Action implements ActionInterface
      */
     public function execute()
     {
-        $itemId = $this->getRequest()->getParam('item_id');
+        $quote = $this->checkoutSession->getQuote();
 
-        if ($itemId) {
-            $quote = $this->checkoutSession->getQuote();
+        if ($quote) {
+            $itemId = $this->getRequest()->getParam('item_id');
 
-            if ($quote) {
+            if (! $itemId) {
+                foreach ($quote->getAllVisibleItems() as $item) {
+                    if ($item->getProduct()->getTypeId() === 'bundle') {
+                        $itemId = $item->getId();
+                    }
+                }
+            }
+
+            if ($itemId) {
                 /** @var Item $item */
                 foreach ($quote->getAllItems() as $item) {
                     if ($item->getId() == $itemId) {
-                        $this->registryHelper->register('current_item', $item);
+                        $this->registryHelper->register(
+                            'current_item',
+                            $item
+                        );
+                        $this->registryHelper->register(
+                            'current_product',
+                            $item->getProduct()
+                        );
 
                         $resultPage = $this->resultPageFactory->create();
 
