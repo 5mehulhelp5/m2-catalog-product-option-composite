@@ -63,6 +63,7 @@ class UpgradeData implements UpgradeDataInterface
                 Setup::ATTRIBUTE_TYPE_TEXT,
                 'text',
                 2010,
+                null,
                 true
             );
 
@@ -75,6 +76,7 @@ class UpgradeData implements UpgradeDataInterface
                 Setup::ATTRIBUTE_TYPE_TEXT,
                 'textarea',
                 2020,
+                null,
                 true
             );
 
@@ -87,6 +89,7 @@ class UpgradeData implements UpgradeDataInterface
                 Setup::ATTRIBUTE_TYPE_VARCHAR,
                 'text',
                 2030,
+                null,
                 true
             );
 
@@ -99,6 +102,7 @@ class UpgradeData implements UpgradeDataInterface
                 Setup::ATTRIBUTE_TYPE_VARCHAR,
                 'text',
                 2040,
+                null,
                 true
             );
         }
