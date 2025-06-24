@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Controller\Quote\Item;
 
+use FeWeDev\Base\Variables;
+use Infrangible\Core\Helper\Product;
 use Infrangible\Core\Helper\Registry;
 use Magento\Checkout\Model\Session;
 use Magento\Framework\App\Action\Action;
@@ -30,17 +32,27 @@ class Bundle extends Action implements ActionInterface
     /** @var PageFactory */
     protected $resultPageFactory;
 
+    /** @var Variables */
+    protected $variables;
+
+    /** @var Product */
+    protected $productHelper;
+
     public function __construct(
         Context $context,
         Session $checkoutSession,
         Registry $registryHelper,
-        PageFactory $resultPageFactory
+        PageFactory $resultPageFactory,
+        Variables $variables,
+        Product $productHelper
     ) {
         parent::__construct($context);
 
         $this->checkoutSession = $checkoutSession;
         $this->registryHelper = $registryHelper;
         $this->resultPageFactory = $resultPageFactory;
+        $this->variables = $variables;
+        $this->productHelper = $productHelper;
     }
 
     /**
@@ -70,14 +82,24 @@ class Bundle extends Action implements ActionInterface
                             'current_item',
                             $item
                         );
+
+                        $product =
+                            $this->productHelper->loadProduct($this->variables->intValue($item->getData('product_id')));
+
                         $this->registryHelper->register(
                             'current_product',
-                            $item->getProduct()
+                            $product
                         );
+
+                        $item->setProduct($product);
 
                         $resultPage = $this->resultPageFactory->create();
 
-                        $resultPage->getConfig()->getTitle()->set($item->getProduct()->getName());
+                        $headline = $product->getData('quote_item_bundle_headline');
+
+                        $resultPage->getConfig()->getTitle()->set(
+                            $this->variables->isEmpty($headline) ? $product->getName() : $headline
+                        );
 
                         return $resultPage;
                     }

@@ -6,6 +6,7 @@ namespace Infrangible\CatalogProductOptionComposite\Block\Quote\Item;
 
 use Infrangible\Core\Helper\Registry;
 use Magento\Catalog\Block\Product\Context;
+use Magento\Catalog\Model\Product;
 use Magento\Framework\View\Element\Template;
 use Magento\Quote\Model\Quote\Item;
 
@@ -32,6 +33,11 @@ class Bundle extends Template
     public function getItem(): Item
     {
         return $this->registryHelper->registry('current_item');
+    }
+
+    public function getProduct(): Product
+    {
+        return $this->getItem()->getProduct();
     }
 
     public function getProductsHtml(): string
