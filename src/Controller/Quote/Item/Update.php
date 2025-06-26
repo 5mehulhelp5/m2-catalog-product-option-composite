@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Data\Form\FormKey\Validator;
+use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Model\Quote\Item;
 use Magento\Store\Model\StoreManagerInterface;
@@ -62,17 +63,19 @@ class Update extends Cart implements HttpPostActionInterface
      */
     public function execute()
     {
-        if (! $this->_formKeyValidator->validate($this->getRequest())) {
+        $request = $this->getRequest();
+
+        if (! $this->_formKeyValidator->validate($request)) {
             return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
 
-        $cartData = $this->getRequest()->getParam('cart');
+        $cartData = $request->getParam('cart');
 
         if (! is_array($cartData)) {
             $cartData = [];
         }
 
-        $itemId = $this->getRequest()->getParam('item_id');
+        $itemId = $request->getParam('item_id');
 
         if ($itemId) {
             if (! array_key_exists(
@@ -98,14 +101,16 @@ class Update extends Cart implements HttpPostActionInterface
                         foreach ($this->helper->getItemBundleSelections($item) as $itemBundleSelection) {
                             /** @var \Magento\Bundle\Model\Option $bundleOption */
                             $bundleOption = $itemBundleSelection[ 'option' ];
-                            /** @var Product $product */
-                            $product = $itemBundleSelection[ 'product' ];
+                            /** @var Product $selection */
+                            $selection = $itemBundleSelection[ 'product' ];
 
-                            foreach ($this->getOptions(
+                            $productOptions = $this->getOptions(
                                 $item,
                                 $bundleOption,
-                                $product
-                            ) as $option) {
+                                $selection
+                            );
+
+                            foreach ($productOptions as $option) {
                                 if (! array_key_exists(
                                     $option->getId(),
                                     $cartData[ $itemId ][ 'options' ]
@@ -113,17 +118,64 @@ class Update extends Cart implements HttpPostActionInterface
                                     $cartData[ $itemId ][ 'options' ][ $option->getId() ] = null;
                                 }
                             }
+
+                            $cartDataObject = new DataObject($cartData);
+
+                            $this->_eventManager->dispatch(
+                                'catalog_product_option_composite_quote_item_bundle_update_item_selection',
+                                [
+                                    'request'         => $request,
+                                    'quote'           => $quote,
+                                    'cart'            => $this->cart,
+                                    'item'            => $item,
+                                    'bundle_option'   => $bundleOption,
+                                    'selection'       => $selection,
+                                    'product_options' => $productOptions,
+                                    'cart_data'       => $cartDataObject
+                                ]
+                            );
+
+                            $cartData = $cartDataObject->getData();
                         }
+
+                        $cartDataObject = new DataObject($cartData);
+
+                        $this->_eventManager->dispatch(
+                            'catalog_product_option_composite_quote_item_bundle_update_item',
+                            [
+                                'request'   => $request,
+                                'quote'     => $quote,
+                                'cart'      => $this->cart,
+                                'item'      => $item,
+                                'cart_data' => $cartDataObject
+                            ]
+                        );
+
+                        $cartData = $cartDataObject->getData();
                     }
                 }
+
+                $cartDataObject = new DataObject($cartData);
+
+                $this->_eventManager->dispatch(
+                    'catalog_product_option_composite_quote_item_bundle_update',
+                    [
+                        'request'   => $request,
+                        'quote'     => $quote,
+                        'cart'      => $this->cart,
+                        'cart_data' => $cartDataObject
+                    ]
+                );
+
+                $cartData = $cartDataObject->getData();
+
+                $this->cartHelper->addItemCustomOptions(
+                    $this->cart,
+                    $cartData
+                );
+
+                $this->cart->save();
             }
-
-            $this->cartHelper->addItemCustomOptions(
-                $this->cart,
-                $cartData
-            );
-
-            $this->cart->save();
         }
 
         return $this->_redirect('checkout/cart');

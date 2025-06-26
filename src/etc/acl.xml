@@ -12,7 +12,7 @@
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
                         <resource id="Magento_Config::config">
-                            <resource id="Infrangible_CatalogAttributeLandingPage::config_infrangible_catalogproductoptioncomposite" title="Catalog Product Option Composite" translate="title" sortOrder="1130"/>
+                            <resource id="Infrangible_CatalogProductOptionComposite::config_infrangible_catalogproductoptioncomposite" title="Catalog Product Option Composite" translate="title" sortOrder="1130"/>
                         </resource>
                     </resource>
                 </resource>

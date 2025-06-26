@@ -15,21 +15,11 @@ use Magento\Framework\View\TemplateEngine\Php;
 /** @var Php $this */
 /** @var Escaper $escaper */
 /** @var Bundle $block */
-
-$product = $block->getProduct();
-$subline = $product->getData('quote_item_bundle_subline');
-$description = $product->getData('quote_item_bundle_description');
-$backButtonText = $product->getData('quote_item_bundle_back_button_text');
-$updateButtonText = $product->getData('quote_item_bundle_update_button_text');
 ?>
 
-<?php if ($subline): ?>
-    <h2><?= $subline; ?></h2>
-<?php endif; ?>
-
-<?php if ($description): ?>
-    <div class="description"><?= $description; ?></div>
-<?php endif; ?>
+<div class="header">
+    <?= $block->getChildHtml('quote.item.bundle.header'); ?>
+</div>
 
 <div class="cart-container">
     <form action="<?= $escaper->escapeUrl($block->getUrl('catalog_product_option_composite/quote_item/update')); ?>"
@@ -37,24 +27,13 @@ $updateButtonText = $product->getData('quote_item_bundle_update_button_text');
           class="form form-cart">
         <?= $block->getBlockHtml('formkey'); ?>
         <input type="hidden" name="item_id" value="<?= /* @noEscape */ $block->getItem()->getId(); ?>" />
+        <?= $block->getChildHtml('quote.item.bundle.products.before'); ?>
         <div class="products wrapper grid products-grid">
             <?= $block->getProductsHtml(); ?>
         </div>
+        <?= $block->getChildHtml('quote.item.bundle.products.after'); ?>
         <div class="cart main actions">
-            <button type="button"
-                    name="update_cart_no_action"
-                    title="<?= $escaper->escapeHtml($backButtonText ? : __('Go Back')); ?>"
-                    class="action secondary back"
-                    onclick="window.location.href='<?= $block->getUrl('checkout/cart'); ?>'">
-                <span><?= $escaper->escapeHtml($backButtonText ? : __('Go Back')); ?></span>
-            </button>
-            <button type="submit"
-                    name="update_cart_action"
-                    value="update_qty"
-                    title="<?= $escaper->escapeHtml($updateButtonText ? : __('Update Shopping Cart')); ?>"
-                    class="action primary update">
-                <span><?= $escaper->escapeHtml($updateButtonText ? : __('Update Shopping Cart')); ?></span>
-            </button>
+            <?= $block->getChildHtml('quote.item.bundle.actions'); ?>
         </div>
     </form>
 </div>

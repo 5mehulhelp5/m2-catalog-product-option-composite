@@ -109,6 +109,7 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
 
         $options = [];
 
+        /** @var Product\Option $productOption */
         foreach ($productOptions as $productOption) {
             if (! $this->helper->isProductOptionAvailableForBundleSelection(
                 $productOption,
@@ -116,6 +117,10 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
                 $this->getBundleOption(),
                 $this->getProduct()
             )) {
+                continue;
+            }
+
+            if ($productOption->hasData('promote') && ! $productOption->getData('promote')) {
                 continue;
             }
 

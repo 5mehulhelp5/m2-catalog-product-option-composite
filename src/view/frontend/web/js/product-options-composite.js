@@ -40,6 +40,7 @@ define([
                 self.handleAllowHideSelect(selectedProductIds, optionId, optionData, option);
                 self.handleAllowHideRadio(selectedProductIds, optionId, optionData, option);
                 self.handleAllowHideCheckbox(selectedProductIds, optionId, optionData, option);
+                self.handleAllowHideProduct(selectedProductIds, optionId, optionData, option);
             });
         },
 
@@ -166,6 +167,18 @@ define([
                 $.each(optionData.values, function(optionValueId, productIds) {
                     self.updateOptionValueElement(selectedProductIds, checkboxButton, optionValueId, productIds);
                 });
+            }
+        },
+
+        handleAllowHideProduct: function(selectedProductIds, optionId, optionData, option) {
+            var self = this;
+
+            if (option.hasClass('field-wrapper-product')) {
+                if (self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                    option.show();
+                } else {
+                    option.hide();
+                }
             }
         },
 
