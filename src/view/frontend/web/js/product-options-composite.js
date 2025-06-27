@@ -25,8 +25,10 @@ define([
 
             domReady(function() {
                 $('.column.main').on('swatch.changed bundle.changed', function (event, selectedProductIds) {
-                    self.handleAllowHide(
-                        Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
+                    if (selectedProductIds !== null) {
+                        self.handleAllowHide(
+                            Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
+                    }
                 });
             });
         },
