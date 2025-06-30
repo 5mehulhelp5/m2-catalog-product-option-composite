@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Plugin\Bundle\Block\Catalog\Product\View\Type;
 
-use Infrangible\CatalogProductOptionComposite\Helper\Data;
+use Infrangible\CatalogProductOptionComposite\Helper\Output;
 use Magento\Bundle\Model\Option;
-use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
 
 /**
  * @author      Andreas Knollmann
@@ -15,16 +14,12 @@ use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
  */
 class Bundle
 {
-    /** @var Data */
-    protected $helper;
+    /** @var Output */
+    protected $outputHelper;
 
-    /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
-    protected $wrapperHelper;
-
-    public function __construct(Data $helper, \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper)
+    public function __construct(Output $outputHelper)
     {
-        $this->helper = $helper;
-        $this->wrapperHelper = $wrapperHelper;
+        $this->outputHelper = $outputHelper;
     }
 
     public function afterGetOptionHtml(
@@ -32,52 +27,12 @@ class Bundle
         string $result,
         Option $bundleOption
     ): string {
-        $optionsHtml = '';
-
-        $product = $subject->getProduct();
-
-        /** @var \Magento\Catalog\Model\Product\Option $option */
-        foreach ($product->getOptions() as $option) {
-            if ($this->helper->isProductOptionValueAvailableForBundleOption(
-                $option,
-                $bundleOption
-            )) {
-                $optionsHtml .= $this->wrapperHelper->renderWrapper(
-                    $subject,
-                    $option,
-                    $this->getOptionHtml(
-                        $subject,
-                        $option
-                    )
-                );
-            }
-        }
+        $optionsHtml = $this->outputHelper->renderBundleOptionsHtml(
+            $subject,
+            $subject->getProduct(),
+            $bundleOption
+        );
 
         return $result . $optionsHtml;
-    }
-
-    public function getOptionHtml(
-        \Magento\Bundle\Block\Catalog\Product\View\Type\Bundle $block,
-        \Magento\Catalog\Model\Product\Option $option
-    ): string {
-        $group = $option->getGroupByType($option->getType());
-
-        $childAlias = sprintf(
-            'option.%s',
-            $group == '' ? 'default' : $group
-        );
-
-        /** @var AbstractOptions $renderer */
-        $renderer = $block->getChildBlock($childAlias);
-
-        $product = $block->getProduct();
-
-        $renderer->setProduct($product);
-        $renderer->setOption($option);
-
-        return $block->getChildHtml(
-            $childAlias,
-            false
-        );
     }
 }
