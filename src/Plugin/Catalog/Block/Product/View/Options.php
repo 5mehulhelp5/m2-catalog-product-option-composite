@@ -14,25 +14,21 @@ use Magento\Catalog\Model\Product\Option;
  */
 class Options
 {
-    /**
-     * @param Option[] $options
-     */
-    public function afterGetOptions(\Magento\Catalog\Block\Product\View\Options $subject, array $options): array
-    {
+    public function aroundGetOptionHtml(
+        \Magento\Catalog\Block\Product\View\Options $subject,
+        callable $proceed,
+        Option $option
+    ) {
         $product = $subject->getProduct();
 
-        if ($product->getTypeId() !== Type::TYPE_CODE) {
-            return $options;
-        }
-
-        foreach ($options as $key => $option) {
+        if ($product->getTypeId() === Type::TYPE_CODE) {
             $allowHideProductIds = $option->getData('allow_hide_product_ids');
 
             if ($allowHideProductIds) {
-                unset($options[ $key ]);
+                return '';
             }
         }
 
-        return $options;
+        return $proceed($option);
     }
 }
