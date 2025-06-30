@@ -193,6 +193,7 @@ class Update extends Cart implements HttpPostActionInterface
 
         $options = [];
 
+        /** @var Option $productOption */
         foreach ($productOptions as $productOption) {
             if (! $this->helper->isProductOptionAvailableForBundleSelection(
                 $productOption,

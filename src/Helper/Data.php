@@ -6,7 +6,6 @@ namespace Infrangible\CatalogProductOptionComposite\Helper;
 
 use Magento\Bundle\Model\Option;
 use Magento\Bundle\Model\Product\Type;
-use Magento\Catalog\Api\Data\ProductCustomOptionInterface;
 use Magento\Catalog\Api\Data\ProductCustomOptionValuesInterface;
 use Magento\Catalog\Model\Product;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
@@ -167,7 +166,7 @@ class Data
     }
 
     public function isProductOptionAvailableForBundleSelection(
-        ProductCustomOptionInterface $productOption,
+        Product\Option $productOption,
         AbstractItem $item,
         Option $bundleOption,
         Product $product
@@ -250,6 +249,29 @@ class Data
                 $allowHideProductIds
             )) {
                 return true;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isProductOptionValueAvailableForBundleOption(Product\Option $option, Option $bundleOption): bool
+    {
+        $allowHideProductIds = $option->getData('allow_hide_product_ids');
+
+        if ($allowHideProductIds) {
+            foreach ($allowHideProductIds as $allowHideProductId) {
+                if (str_starts_with(
+                    $allowHideProductId,
+                    sprintf(
+                        '%s_',
+                        $bundleOption->getId()
+                    )
+                )) {
+                    return true;
+                }
             }
 
             return false;
