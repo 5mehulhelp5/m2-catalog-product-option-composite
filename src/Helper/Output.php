@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Helper;
 
+use FeWeDev\Base\Variables;
 use Magento\Bundle\Model\Option;
 use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
 use Magento\Catalog\Model\Product;
@@ -24,37 +25,66 @@ class Output extends AbstractHelper
     /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
     protected $wrapperHelper;
 
+    /** @var \Infrangible\Core\Helper\Product */
+    protected $productHelper;
+
+    /** @var Variables */
+    protected $variables;
+
+    /** @var Product[] */
+    private $products = [];
+
     public function __construct(
         Context $context,
         Data $helper,
-        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper
+        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper,
+        \Infrangible\Core\Helper\Product $productHelper,
+        Variables $variables
     ) {
         parent::__construct($context);
 
         $this->helper = $helper;
         $this->wrapperHelper = $wrapperHelper;
+        $this->productHelper = $productHelper;
+        $this->variables = $variables;
     }
 
-    public function renderBundleOptionsHtml(AbstractBlock $block, Product $product, Option $bundleOption): string
+    public function renderBundleOptionsHtml(AbstractBlock $block, Option $bundleOption): string
     {
         $optionsHtml = '';
 
-        /** @var Product\Option $option */
-        foreach ($product->getOptions() as $option) {
-            if ($this->helper->isProductOptionValueAvailableForBundleOption(
-                $option,
-                $bundleOption
+        try {
+            $productId = $bundleOption->getParentId();
+
+            if (array_key_exists(
+                $productId,
+                $this->products
             )) {
-                $optionsHtml .= $this->wrapperHelper->renderWrapper(
-                    $block,
-                    $option,
-                    $this->getOptionHtml(
-                        $block,
-                        $product,
-                        $option
-                    )
-                );
+                $product = $this->products[ $productId ];
+            } else {
+                $product = $this->productHelper->loadProduct($this->variables->intValue($productId));
+
+                $this->products[ $productId ] = $product;
             }
+
+            /** @var Product\Option $option */
+            foreach ($product->getOptions() as $option) {
+                if ($this->helper->isProductOptionValueAvailableForBundleOption(
+                    $option,
+                    $bundleOption
+                )) {
+                    $optionsHtml .= $this->wrapperHelper->renderWrapper(
+                        $block,
+                        $option,
+                        $this->getOptionHtml(
+                            $block,
+                            $product,
+                            $option
+                        )
+                    );
+                }
+            }
+        } catch (\Exception $exception) {
         }
 
         return $optionsHtml;

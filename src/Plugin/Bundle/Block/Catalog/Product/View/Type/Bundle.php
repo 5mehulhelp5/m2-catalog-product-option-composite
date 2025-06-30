@@ -29,7 +29,6 @@ class Bundle
     ): string {
         $optionsHtml = $this->outputHelper->renderBundleOptionsHtml(
             $subject,
-            $subject->getProduct(),
             $bundleOption
         );
 
