@@ -7,6 +7,8 @@ namespace Infrangible\CatalogProductOptionComposite\Helper;
 use Magento\Bundle\Model\Option;
 use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
 use Magento\Catalog\Model\Product;
+use Magento\Framework\App\Helper\AbstractHelper;
+use Magento\Framework\App\Helper\Context;
 use Magento\Framework\View\Element\AbstractBlock;
 
 /**
@@ -14,7 +16,7 @@ use Magento\Framework\View\Element\AbstractBlock;
  * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
-class Output
+class Output extends AbstractHelper
 {
     /** @var Data */
     protected $helper;
@@ -22,8 +24,13 @@ class Output
     /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
     protected $wrapperHelper;
 
-    public function __construct(Data $helper, \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper)
-    {
+    public function __construct(
+        Context $context,
+        Data $helper,
+        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper
+    ) {
+        parent::__construct($context);
+
         $this->helper = $helper;
         $this->wrapperHelper = $wrapperHelper;
     }
