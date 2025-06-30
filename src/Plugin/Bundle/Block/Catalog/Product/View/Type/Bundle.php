@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Plugin\Bundle\Block\Catalog\Product\View\Type;
 
-use Infrangible\CatalogProductOptionComposite\Helper\Output;
+use Infrangible\CatalogProductOptionComposite\Block\Catalog\Product\View\Type\Bundle\Options\Options;
 use Magento\Bundle\Model\Option;
 
 /**
@@ -14,24 +14,20 @@ use Magento\Bundle\Model\Option;
  */
 class Bundle
 {
-    /** @var Output */
-    protected $outputHelper;
-
-    public function __construct(Output $outputHelper)
-    {
-        $this->outputHelper = $outputHelper;
-    }
-
     public function afterGetOptionHtml(
         \Magento\Bundle\Block\Catalog\Product\View\Type\Bundle $subject,
         string $result,
         Option $bundleOption
     ): string {
-        $optionsHtml = $this->outputHelper->renderBundleOptionsHtml(
-            $subject,
-            $bundleOption
-        );
+        /** @var Options $childBlock */
+        $childBlock = $subject->getChildBlock('product.info.bundle.options.options');
 
-        return $result . $optionsHtml;
+        if ($childBlock) {
+            $childBlock->setBundleOption($bundleOption);
+
+            return $result . $childBlock->toHtml();
+        } else {
+            return $result;
+        }
     }
 }

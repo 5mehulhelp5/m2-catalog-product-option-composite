@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+use Infrangible\CatalogProductOptionComposite\Block\Catalog\Product\View\Type\Bundle\Options\Options;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/** @var Php $this */
+/** @var Escaper $escaper */
+/** @var Options $block */
+
+?>
+
+<?= $block->renderBundleOptionsHtml(); ?>
