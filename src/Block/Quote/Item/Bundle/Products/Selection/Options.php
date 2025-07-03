@@ -38,6 +38,9 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
     /** @var Format */
     protected $localeFormat;
 
+    /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
+    protected $wrapperHelper;
+
     /** @var Option */
     private $bundleOption;
 
@@ -56,6 +59,7 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
         Data $helper,
         \Magento\Catalog\Helper\Data $catalogHelper,
         Format $localeFormat,
+        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper,
         array $data = []
     ) {
         parent::__construct(
@@ -73,6 +77,7 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
         $this->helper = $helper;
         $this->catalogHelper = $catalogHelper;
         $this->localeFormat = $localeFormat;
+        $this->wrapperHelper = $wrapperHelper;
     }
 
     public function getBundleOption(): Option
@@ -163,10 +168,12 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
             $renderer->setProduct($product);
             $renderer->setOption($option);
 
-            return $this->getChildHtml(
+            $optionHtml = $this->getChildHtml(
                 $rendererBlockId,
                 false
             );
+
+            return $this->wrapperHelper->renderWrapper($this, $option, $optionHtml);
         }
 
         return '';
