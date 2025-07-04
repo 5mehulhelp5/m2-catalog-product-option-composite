@@ -51,7 +51,7 @@ define([
                     var selectedProductIds = self.collectSelectedProductIds(options);
 
                     $(self.options.productBundleTriggerSelector).trigger('bundle.option.changed',
-                        [optionId, selectedProductIds[selectedProductIds]]);
+                        [optionId, selectedProductIds[optionId]]);
                 });
             });
         },
