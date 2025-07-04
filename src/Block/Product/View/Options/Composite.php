@@ -61,6 +61,11 @@ class Composite extends Template
         return $this->product;
     }
 
+    public function setProduct(Product $product): void
+    {
+        $this->product = $product;
+    }
+
     /**
      * @return Option[]
      */

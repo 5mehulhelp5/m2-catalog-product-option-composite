@@ -90,6 +90,7 @@ class Output extends AbstractHelper
             $compositeBlock = $block->getChildBlock('product_options_composite');
 
             if ($compositeBlock) {
+                $compositeBlock->setProduct($product);
                 $compositeBlock->setBundleOption($bundleOption);
 
                 $optionsHtml .= $compositeBlock->toHtml();
