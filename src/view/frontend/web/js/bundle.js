@@ -7,7 +7,8 @@
 define([
     'jquery',
     'priceUtils',
-    'domReady'
+    'domReady',
+    'bundleProductOptionsComposite'
 ], function ($, utils, domReady) {
     'use strict';
 
