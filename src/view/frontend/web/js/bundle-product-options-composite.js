@@ -6,12 +6,14 @@
 
 define([
     'jquery',
-    'domReady'
+    'domReady',
+    'catalogProductCompositeBundle'
 ], function ($, domReady) {
     'use strict';
 
     var globalOptions = {
         config: {},
+        productBundleTriggerSelector: '.column.main',
         bundleOptionId: null
     };
 
@@ -25,7 +27,7 @@ define([
             var self = this;
 
             domReady(function() {
-                $('.column.main').on('bundle.option.changed', function (event, bundleOptionId, selectedProductIds) {
+                $(self.options.productBundleTriggerSelector).on('bundle.option.changed', function (event, bundleOptionId, selectedProductIds) {
                     if (parseInt(self.options.bundleOptionId) === parseInt(bundleOptionId) &&
                         selectedProductIds !== null) {
 
@@ -34,6 +36,9 @@ define([
                     }
                 });
             });
+
+            $(self.options.productBundleTriggerSelector).trigger('bundle.product.options.composite.initialized',
+                [self.options.bundleOptionId]);
         },
 
         handleAllowHide: function(selectedProductIds) {

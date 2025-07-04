@@ -8,7 +8,6 @@ define([
     'jquery',
     'priceUtils',
     'domReady',
-    'bundleProductOptionsComposite'
 ], function ($, utils, domReady) {
     'use strict';
 
@@ -33,37 +32,49 @@ define([
                 var options = $(self.options.productBundleSelector, form);
 
                 options.on('change', function() {
-                    var selectedProductIds = [];
+                    var selectedProductIds = self.collectSelectedProductIds(options);
+                    console.debug('Changed bundle options have selected product ids: ' + selectedProductIds);
 
-                    options.each(function() {
-                        var option = $(this);
-                        var optionId = utils.findOptionId(option[0]);
-                        var optionValueSelectedProductIds = self.getOptionValueSelectedProductIds(option);
-
-                        if (! (optionId in selectedProductIds)) {
-                            selectedProductIds[optionId] = [];
-                        }
-
-                        $.each(optionValueSelectedProductIds, function(key, selectedProductId) {
-                            selectedProductIds[optionId].push(selectedProductId);
-                        });
-                    });
-
-                    console.debug('Changed bundle options has selected product ids: ' + selectedProductIds);
-
-                    $(self.option.productBundleTriggerSelector).trigger('bundle.changed', [selectedProductIds]);
+                    $(self.options.productBundleTriggerSelector).trigger('bundle.changed', [selectedProductIds]);
 
                     var option = $(this);
                     var optionId = utils.findOptionId(option[0]);
-
+                    var optionSelectedProductIds = selectedProductIds[optionId];
                     console.debug('Changed bundle option with id: ' +  optionId +
-                        ' has selected product ids: ' + selectedProductIds[optionId]);
+                        ' has selected product ids: ' + optionSelectedProductIds);
 
                     $(self.options.productBundleTriggerSelector).trigger('bundle.option.changed',
-                        [optionId, selectedProductIds[optionId]]);
+                        [optionId, optionSelectedProductIds]);
+                });
 
+                $(self.options.productBundleTriggerSelector).on('bundle.product.options.composite.initialized', function(event, optionId) {
+                    var selectedProductIds = self.collectSelectedProductIds(options);
+
+                    $(self.options.productBundleTriggerSelector).trigger('bundle.option.changed',
+                        [optionId, selectedProductIds[selectedProductIds]]);
                 });
             });
+        },
+
+        collectSelectedProductIds: function(options) {
+            var self = this;
+            var selectedProductIds = [];
+
+            options.each(function() {
+                var option = $(this);
+                var optionId = utils.findOptionId(option[0]);
+                var optionValueSelectedProductIds = self.getOptionValueSelectedProductIds(option);
+
+                if (! (optionId in selectedProductIds)) {
+                    selectedProductIds[optionId] = [];
+                }
+
+                $.each(optionValueSelectedProductIds, function(key, selectedProductId) {
+                    selectedProductIds[optionId].push(selectedProductId);
+                });
+            });
+
+            return selectedProductIds;
         },
 
         getOptionValueSelectedProductIds: function(option) {
@@ -125,6 +136,10 @@ define([
             });
 
             return optionValueSelectedProductIds;
+        },
+
+        getCache: function() {
+            return this.cache;
         }
     });
 

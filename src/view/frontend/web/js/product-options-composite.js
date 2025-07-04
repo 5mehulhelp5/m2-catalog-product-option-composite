@@ -11,7 +11,8 @@ define([
     'use strict';
 
     var globalOptions = {
-        config: {}
+        config: {},
+        productBundleTriggerSelector: '.column.main'
     };
 
     $.widget('mage.productOptionsComposite', {
@@ -24,13 +25,15 @@ define([
             var self = this;
 
             domReady(function() {
-                $('.column.main').on('swatch.changed bundle.changed', function (event, selectedProductIds) {
+                $(self.options.productBundleTriggerSelector).on('swatch.changed bundle.changed', function (event, selectedProductIds) {
                     if (selectedProductIds !== null) {
                         self.handleAllowHide(
                             Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
                     }
                 });
             });
+
+            $(self.options.productBundleTriggerSelector).trigger('product.options.composite.initialized');
         },
 
         handleAllowHide: function(selectedProductIds) {
