@@ -9,6 +9,7 @@ var config = {
         '*': {
             catalogProductCompositeBundle: 'Infrangible_CatalogProductOptionComposite/js/bundle',
             productOptionsComposite: 'Infrangible_CatalogProductOptionComposite/js/product-options-composite',
+            bundleProductOptionsComposite: 'Infrangible_CatalogProductOptionComposite/js/bundle-product-options-composite',
         }
     }
 };

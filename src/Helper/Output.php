@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Infrangible\CatalogProductOptionComposite\Helper;
 
 use FeWeDev\Base\Variables;
+use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle;
 use Magento\Bundle\Model\Option;
 use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
 use Magento\Catalog\Model\Product;
@@ -83,6 +84,15 @@ class Output extends AbstractHelper
                         )
                     );
                 }
+            }
+
+            /** @var Bundle $compositeBlock */
+            $compositeBlock = $block->getChildBlock('product_options_composite');
+
+            if ($compositeBlock) {
+                $compositeBlock->setBundleOption($bundleOption);
+
+                $optionsHtml .= $compositeBlock->toHtml();
             }
         } catch (\Exception $exception) {
         }

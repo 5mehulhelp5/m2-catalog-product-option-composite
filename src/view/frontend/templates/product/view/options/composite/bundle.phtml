@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle;
+use Magento\Framework\View\TemplateEngine\Php;
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
+/** @var Php $this */
+/** @var Bundle $block */
+?>
+
+<script type="text/x-magento-init">
+    {
+        "#bundle-option-<?= /* @noEscape */ $block->getBundleOption()->getId(); ?>": {
+            "bundleProductOptionsComposite": {
+                "config": <?= /* @noEscape */ $block->getConfig(); ?>,
+                "bundleOptionId": <?= /* @noEscape */ $block->getBundleOption()->getId(); ?>
+            }
+        }
+    }
+</script>

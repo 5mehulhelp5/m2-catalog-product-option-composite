@@ -61,12 +61,29 @@ class Composite extends Template
         return $this->product;
     }
 
+    /**
+     * @return Option[]
+     */
+    public function getOptions(): array
+    {
+        return $this->getProduct()->getOptions();
+    }
+
     public function getConfig(): string
+    {
+        return $this->json->encode($this->getConfigData());
+    }
+
+    public function isBundleOption(): bool
+    {
+        return false;
+    }
+
+    public function getConfigData(): array
     {
         $config = [];
 
-        /** @var Option $option */
-        foreach ($this->getProduct()->getOptions() as $option) {
+        foreach ($this->getOptions() as $option) {
             $optionId = $option->getId();
             $optionValues = $option->getValues();
 
@@ -84,8 +101,12 @@ class Composite extends Template
                                 $allowHideProductId
                             );
 
-                            $config[ 'allowHideProductIds' ][ $optionId ][ 'option' ][ $bundleOptionId ][] =
-                                $bundleProductId;
+                            if ($this->isBundleOption()) {
+                                $config[ 'allowHideProductIds' ][ $optionId ][ 'option' ][] = $bundleProductId;
+                            } else {
+                                $config[ 'allowHideProductIds' ][ $optionId ][ 'option' ][ $bundleOptionId ][] =
+                                    $bundleProductId;
+                            }
                         }
                     }
                 } else {
@@ -112,8 +133,13 @@ class Composite extends Template
                                         $allowHideProductId
                                     );
 
-                                    $config[ 'allowHideProductIds' ][ $optionId ][ 'values' ][ $optionValueId ][ $bundleOptionId ][] =
-                                        $bundleProductId;
+                                    if ($this->isBundleOption()) {
+                                        $config[ 'allowHideProductIds' ][ $optionId ][ 'values' ][ $optionValueId ][] =
+                                            $bundleProductId;
+                                    } else {
+                                        $config[ 'allowHideProductIds' ][ $optionId ][ 'values' ][ $optionValueId ][ $bundleOptionId ][] =
+                                            $bundleProductId;
+                                    }
                                 }
                             }
                         } else {
@@ -125,6 +151,6 @@ class Composite extends Template
             }
         }
 
-        return $this->json->encode($config);
+        return $config;
     }
 }
