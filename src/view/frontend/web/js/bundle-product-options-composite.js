@@ -6,7 +6,8 @@
 
 define([
     'jquery',
-    'domReady'
+    'domReady',
+    'catalogProductCompositeBundle'
 ], function ($, domReady) {
     'use strict';
 
@@ -55,11 +56,15 @@ define([
             var select = option.find('#select_' + optionId);
 
             if (select.length > 0) {
-                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                console.debug('Found select for product option with id: ' + optionId);
+
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option, optionId)) {
                     select.val('');
                     select.trigger('change');
                 }
                 self.handleAllowHideSelectOptions(selectedProductIds, optionId, optionData, option, select);
+            } else {
+                console.debug('Found no select for product option with id: ' + optionId);
             }
         },
 
@@ -90,6 +95,8 @@ define([
             var radioButtons = option.find('input[type="radio"][name="options[' + optionId + ']"]');
 
             if (radioButtons.length > 0) {
+                console.debug('Found radio buttons for product option with id: ' + optionId);
+
                 var noSelectionRadioButton;
                 radioButtons.each(function(key, value) {
                     var radioButton = $(value);
@@ -98,7 +105,7 @@ define([
                     }
                 });
 
-                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option, optionId)) {
                     if (noSelectionRadioButton && ! noSelectionRadioButton.is(':checked')) {
                         noSelectionRadioButton.prop('checked', true);
                         noSelectionRadioButton.trigger('change');
@@ -117,6 +124,8 @@ define([
                         }
                     }
                 }
+            } else {
+                console.debug('Found no radio buttons for product option with id: ' + optionId);
             }
         },
 
@@ -136,7 +145,9 @@ define([
             var checkboxButtons = option.find('input[type="checkbox"][name="options[' + optionId + '][]"]');
 
             if (checkboxButtons.length > 0) {
-                if (! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                console.debug('Found checkbox buttons for product option with id: ' + optionId);
+
+                if (! self.handleAllowHideOption(selectedProductIds, optionData, option, optionId)) {
                     checkboxButtons.each(function(key, value) {
                         var checkboxButton = $(value);
                         if (checkboxButton.is(':checked')) {
@@ -162,6 +173,8 @@ define([
                         });
                     }
                 }
+            } else {
+                console.debug('Found no checkbox buttons for product option with id: ' + optionId);
             }
         },
 
@@ -179,29 +192,41 @@ define([
             var self = this;
 
             if (option.hasClass('field-wrapper-product')) {
-                if (self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                console.debug('Found product for product option with id: ' + optionId);
+
+                if (self.handleAllowHideOption(selectedProductIds, optionData, option, optionId)) {
                     option.show();
                 } else {
                     option.hide();
                 }
+            } else {
+                console.debug('Found no product for product option with id: ' + optionId);
             }
         },
 
-        handleAllowHideOption: function(selectedProductIds, optionData, option) {
+        handleAllowHideOption: function(selectedProductIds, optionData, option, optionId) {
             var self = this;
 
-            if (optionData.option) {
-                var productIds = optionData.option;
+            if (option.length > 0) {
+                console.debug('Updating option with id: ' + optionId);
 
-                var selected = self.isSelected(selectedProductIds, productIds);
+                if (optionData.option) {
+                    var productIds = optionData.option;
 
-                if (selected) {
-                    option.show();
-                    return true;
-                } else {
-                    option.hide();
-                    return false;
+                    var selected = self.isSelected(selectedProductIds, productIds);
+
+                    if (selected) {
+                        console.debug('Showing option with id: ' + optionId);
+                        option.show();
+                        return true;
+                    } else {
+                        console.debug('Hiding option with id: ' + optionId);
+                        option.hide();
+                        return false;
+                    }
                 }
+            } else {
+                console.log('Found no option to update with id: ' + optionId);
             }
         },
 
