@@ -9,4 +9,10 @@
     <event name="catalog_product_option_offer_composite_item_product_option_available">
         <observer name="infrangible_catalogproductoptioncomposite" instance="Infrangible\CatalogProductOptionComposite\Observer\CatalogProductOptionOfferCompositeItemProductOptionAvailable"/>
     </event>
+    <event name="checkout_cart_add_product_complete">
+        <observer name="infrangible_catalogproductoptioncomposite" instance="Infrangible\CatalogProductOptionComposite\Observer\CheckoutCartAddProductComplete"/>
+    </event>
+    <event name="checkout_cart_product_add_after">
+        <observer name="infrangible_catalogproductoptioncomposite" instance="Infrangible\CatalogProductOptionComposite\Observer\CheckoutCartProductAddAfter"/>
+    </event>
 </config>

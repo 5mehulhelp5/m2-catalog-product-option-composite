@@ -58,6 +58,7 @@ class Bundle extends Action implements ActionInterface
     /**
      * @throws NoSuchEntityException
      * @throws LocalizedException
+     * @throws \Exception
      */
     public function execute()
     {

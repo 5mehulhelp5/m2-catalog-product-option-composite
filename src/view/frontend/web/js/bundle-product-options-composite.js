@@ -7,7 +7,7 @@
 define([
     'jquery',
     'domReady',
-    'catalogProductCompositeBundle'
+    'bundleOptionSelection'
 ], function ($, domReady) {
     'use strict';
 

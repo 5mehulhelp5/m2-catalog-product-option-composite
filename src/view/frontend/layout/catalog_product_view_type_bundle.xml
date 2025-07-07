@@ -7,9 +7,6 @@
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <referenceContainer name="product.info.type">
-            <block class="Infrangible\CatalogProductOptionComposite\Block\Product\View\Bundle" name="product.info.type.bundle" as="catalog_product_info_type_bundle" template="Infrangible_CatalogProductOptionComposite::product/view/bundle.phtml"/>
-        </referenceContainer>
         <referenceBlock name="product.info.bundle.options">
             <block class="Infrangible\CatalogProductOptionComposite\Block\Catalog\Product\View\Type\Bundle\Options\Options" name="product.info.bundle.options.options" template="Infrangible_CatalogProductOptionComposite::catalog/product/view/type/bundle/options/options.phtml">
                 <block class="Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle" name="product.info.bundle.options.options.composite" as="product_options_composite" template="Infrangible_CatalogProductOptionComposite::product/view/options/composite/bundle.phtml"/>

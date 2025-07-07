@@ -7,9 +7,15 @@
 var config = {
     map: {
         '*': {
-            catalogProductCompositeBundle: 'Infrangible_CatalogProductOptionComposite/js/bundle',
             productOptionsComposite: 'Infrangible_CatalogProductOptionComposite/js/product-options-composite',
             bundleProductOptionsComposite: 'Infrangible_CatalogProductOptionComposite/js/bundle-product-options-composite',
+        }
+    },
+    config: {
+        mixins: {
+            'Infrangible_BundleOptionSelection/js/selection': {
+                'Infrangible_CatalogProductOptionComposite/js/selection-mixin': true
+            }
         }
     }
 };
