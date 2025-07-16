@@ -17,15 +17,12 @@ define([
             self._super();
 
             domReady(function() {
-                var form = self.element;
-                var options = $(self.options.productBundleSelector, form);
+                $(self.options.productBundleTriggerSelector).on('bundle_product_options_composite_initialized', function(event, optionId) {
+                    console.debug('bundle product options composite initialized for option with id: ' + optionId);
 
-                $(self.options.productBundleTriggerSelector).on('bundle.product.options.composite.initialized', function(event, optionId) {
-                    console.debug('bundle.product.options.composite.initialized for option with id: ' + optionId);
+                    var selectedProductIds = self.collectSelectedProductIds();
 
-                    var selectedProductIds = self.collectSelectedProductIds(options);
-
-                    $(self.options.productBundleTriggerSelector).trigger('bundle.option.changed',
+                    $(self.options.productBundleTriggerSelector).trigger('bundle_option_changed',
                         [optionId, selectedProductIds[optionId]]);
                 });
             });

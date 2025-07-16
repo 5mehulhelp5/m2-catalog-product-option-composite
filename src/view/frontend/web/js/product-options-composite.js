@@ -12,7 +12,7 @@ define([
 
     var globalOptions = {
         config: {},
-        productBundleTriggerSelector: '.column.main'
+        productTriggerSelector: '.column.main'
     };
 
     $.widget('mage.productOptionsComposite', {
@@ -25,15 +25,15 @@ define([
             var self = this;
 
             domReady(function() {
-                $(self.options.productBundleTriggerSelector).on('swatch.changed bundle.changed', function (event, selectedProductIds) {
+                $(self.options.productTriggerSelector).on('swatch.changed bundle_changed', function (event, selectedProductIds) {
                     if (selectedProductIds !== null) {
                         self.handleAllowHide(
                             Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
                     }
                 });
-            });
 
-            $(self.options.productBundleTriggerSelector).trigger('product.options.composite.initialized');
+                $(self.options.productTriggerSelector).trigger('product_options_composite_initialized');
+            });
         },
 
         handleAllowHide: function(selectedProductIds) {
@@ -183,6 +183,7 @@ define([
                     option.show();
                 } else {
                     option.hide();
+                    option.find('div.swatch-option.selected').trigger('click');
                 }
             }
         },

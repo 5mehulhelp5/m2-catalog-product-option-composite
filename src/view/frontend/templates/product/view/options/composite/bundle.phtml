@@ -13,6 +13,8 @@ use Magento\Framework\View\TemplateEngine\Php;
 
 /** @var Php $this */
 /** @var Bundle $block */
+
+$bundleOption = $block->getBundleOption();
 ?>
 
 <script type="text/x-magento-init">
@@ -25,3 +27,44 @@ use Magento\Framework\View\TemplateEngine\Php;
         }
     }
 </script>
+
+<script type="text/x-magento-init">
+    {
+        "#bundle-option-<?= /* @noEscape */ $block->getBundleOption()->getId(); ?>": {
+            "priceOptions": {
+                "optionConfig": <?= /* @noEscape */ $block->getOptionsJsonConfig() ?>,
+                "controlContainer": ".field",
+                "priceHolderSelector": "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOption->getId(); ?>]"
+            }
+        }
+    }
+</script>
+
+<div class="product-options-price">
+    <div class="price-box"
+         data-role="priceBox"
+         data-price-box-id="bundle-selection-id-<?= $bundleOption->getId(); ?>">
+        <?= /* @noEscape */ $block->renderAmount(
+            [
+                'display_label'     =>  __('Selected product options'),
+                'price_id'          => 'bundle-selection-price-' . $bundleOption->getId(),
+                'price_type'        => 'finalPrice',
+                'include_container' => true,
+                'schema'            => 'item_view'
+
+            ]
+        ); ?>
+    </div>
+    <script type="text/x-magento-init">
+        {
+            "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOption->getId(); ?>]": {
+                "priceBox": {
+                    "priceConfig": {
+                        "priceFormat": <?= /* @noEscape */ $block->getPriceFormatJson(); ?>,
+                        "prices": <?= /* @noEscape */ $block->getPricesJson(); ?>
+                    }
+                }
+            }
+        }
+    </script>
+</div>

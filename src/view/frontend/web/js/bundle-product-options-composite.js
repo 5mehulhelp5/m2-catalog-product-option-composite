@@ -13,7 +13,7 @@ define([
 
     var globalOptions = {
         config: {},
-        productBundleTriggerSelector: '.column.main',
+        productBundleTriggerSelector: '.bundle-options-container',
         bundleOptionId: null
     };
 
@@ -27,7 +27,7 @@ define([
             var self = this;
 
             domReady(function() {
-                $(self.options.productBundleTriggerSelector).on('bundle.option.changed', function (event, bundleOptionId, selectedProductIds) {
+                $(self.options.productBundleTriggerSelector).on('bundle_option_changed', function (event, bundleOptionId, selectedProductIds) {
                     if (parseInt(self.options.bundleOptionId) === parseInt(bundleOptionId) &&
                         selectedProductIds !== null) {
 
@@ -35,10 +35,10 @@ define([
                             Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
                     }
                 });
-            });
 
-            $(self.options.productBundleTriggerSelector).trigger('bundle.product.options.composite.initialized',
-                [self.options.bundleOptionId]);
+                $(self.options.productBundleTriggerSelector).trigger('bundle_product_options_composite_initialized',
+                    [self.options.bundleOptionId]);
+            });
         },
 
         handleAllowHide: function(selectedProductIds) {
@@ -202,6 +202,7 @@ define([
                     option.show();
                 } else {
                     option.hide();
+                    option.find('div.swatch-option.selected').trigger('click');
                 }
             } else {
                 console.debug('Found no product for product option with id: ' + optionId);

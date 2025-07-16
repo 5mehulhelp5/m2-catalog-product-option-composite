@@ -30,4 +30,43 @@ class Bundle
             return $result;
         }
     }
+
+    public function afterToHtml(\Magento\Bundle\Block\Catalog\Product\View\Type\Bundle $subject, string $result): string
+    {
+        $product = $subject->getProduct();
+
+        $selector = '"controlContainer": ".field.option"';
+
+        $position = strpos(
+            $result,
+            $selector
+        );
+
+        if ($position !== false) {
+            $position += strlen($selector) - 1;
+
+            $before = substr(
+                $result,
+                0,
+                $position
+            );
+            $after = substr(
+                $result,
+                $position
+            );
+
+            $result = sprintf(
+                '%s",%s                %s%s',
+                $before,
+                PHP_EOL,
+                sprintf(
+                    "\"priceBoxSelector\": \"[data-role=priceBox][data-price-box=product-id-%s]",
+                    $product->getId()
+                ),
+                $after
+            );
+        }
+
+        return $result;
+    }
 }
