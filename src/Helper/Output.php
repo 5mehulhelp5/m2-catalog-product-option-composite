@@ -138,14 +138,21 @@ class Output extends AbstractHelper
                 $this->products[ $productId ] = $product;
             }
 
-            /** @var Bundle $priceBlock */
-            $priceBlock = $block->getChildBlock('product_options_price');
+            foreach ($product->getOptions() as $option) {
+                if ($this->helper->isProductOptionValueAvailableForBundleOption(
+                    $option,
+                    $bundleOption
+                )) {
+                    /** @var Bundle $priceBlock */
+                    $priceBlock = $block->getChildBlock('product_options_price');
 
-            if ($priceBlock) {
-                $priceBlock->setProduct($product);
-                $priceBlock->setBundleOption($bundleOption);
+                    if ($priceBlock) {
+                        $priceBlock->setProduct($product);
+                        $priceBlock->setBundleOption($bundleOption);
 
-                return $priceBlock->toHtml();
+                        return $priceBlock->toHtml();
+                    }
+                }
             }
         } catch (\Exception $exception) {
         }
