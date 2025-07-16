@@ -16,6 +16,7 @@
                 <block class="Magento\Catalog\Block\Product\View\Options\Type\File" name="product.info.bundle.options.options.file" as="option.file" template="Magento_Catalog::product/view/options/type/file.phtml"/>
                 <block class="Magento\Catalog\Block\Product\View\Options\Type\Select" name="product.info.bundle.options.options.select" as="option.select" template="Magento_Catalog::product/view/options/type/select.phtml"/>
                 <block class="Magento\Catalog\Block\Product\View\Options\Type\Date" name="product.info.bundle.options.options.date" as="option.date" template="Magento_Catalog::product/view/options/type/date.phtml"/>
+                <block class="Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle" name="product.info.bundle.options.options.price" as="product_options_price" template="Infrangible_CatalogProductOptionComposite::product/view/options/composite/price.phtml"/>
             </block>
         </referenceBlock>
     </body>

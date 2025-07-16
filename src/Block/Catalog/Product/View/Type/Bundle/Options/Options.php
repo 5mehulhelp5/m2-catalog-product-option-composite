@@ -48,4 +48,12 @@ class Options extends Template
             $this->getBundleOption()
         );
     }
+
+    public function renderBundleOptionsPriceHtml(): string
+    {
+        return $this->outputHelper->renderBundleOptionsPriceHtml(
+            $this,
+            $this->getBundleOption()
+        );
+    }
 }

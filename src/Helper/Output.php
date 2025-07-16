@@ -121,4 +121,35 @@ class Output extends AbstractHelper
             false
         );
     }
+
+    public function renderBundleOptionsPriceHtml(AbstractBlock $block, Option $bundleOption): string
+    {
+        try {
+            $productId = $bundleOption->getParentId();
+
+            if (array_key_exists(
+                $productId,
+                $this->products
+            )) {
+                $product = $this->products[ $productId ];
+            } else {
+                $product = $this->productHelper->loadProduct($this->variables->intValue($productId));
+
+                $this->products[ $productId ] = $product;
+            }
+
+            /** @var Bundle $priceBlock */
+            $priceBlock = $block->getChildBlock('product_options_price');
+
+            if ($priceBlock) {
+                $priceBlock->setProduct($product);
+                $priceBlock->setBundleOption($bundleOption);
+
+                return $priceBlock->toHtml();
+            }
+        } catch (\Exception $exception) {
+        }
+
+        return '';
+    }
 }
