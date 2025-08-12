@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Infrangible\CatalogProductOptionComposite\Helper;
 
+use FeWeDev\Base\Variables;
 use Magento\Bundle\Model\Option;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Api\Data\ProductCustomOptionValuesInterface;
@@ -24,15 +25,19 @@ class Data
     /** @var EventManager */
     protected $eventManager;
 
+    /** @var Variables */
+    protected $variables;
+
     /** @var array */
     private $itemBundleSelections = [];
 
     /** @var array */
     private $itemCompositeProductIds = [];
 
-    public function __construct(EventManager $eventManager)
+    public function __construct(EventManager $eventManager, Variables $variables)
     {
         $this->eventManager = $eventManager;
+        $this->variables = $variables;
     }
 
     public function getCompositeProductIds(AbstractItem $item): array
@@ -259,6 +264,18 @@ class Data
 
     public function isProductOptionValueAvailableForBundleOption(Product\Option $option, Option $bundleOption): bool
     {
+        try {
+            return $this->isProductOptionValueAvailableForBundleOptionId(
+                $option,
+                $this->variables->intValue($bundleOption->getId())
+            );
+        } catch (\Exception $exception) {
+            return false;
+        }
+    }
+
+    public function isProductOptionValueAvailableForBundleOptionId(Product\Option $option, int $bundleOptionId): bool
+    {
         $allowHideProductIds = $option->getData('allow_hide_product_ids');
 
         if ($allowHideProductIds) {
@@ -267,7 +284,7 @@ class Data
                     $allowHideProductId,
                     sprintf(
                         '%s_',
-                        $bundleOption->getId()
+                        $bundleOptionId
                     )
                 )) {
                     return true;
