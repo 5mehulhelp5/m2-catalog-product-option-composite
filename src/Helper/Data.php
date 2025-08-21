@@ -170,13 +170,13 @@ class Data
         return true;
     }
 
-    public function isProductOptionAvailableForBundleSelection(
+    public function isProductOptionAvailableForItemBundleOptionSelection(
         Product\Option $productOption,
         AbstractItem $item,
         Option $bundleOption,
         Product $product
     ): bool {
-        $isAvailable = $this->isAvailableForBundleSelection(
+        $isAvailable = $this->isAvailableForBundleOptionSelection(
             $productOption,
             $bundleOption,
             $product
@@ -204,13 +204,13 @@ class Data
         return $checkResult->getData('is_available');
     }
 
-    public function isProductOptionValueAvailableForBundleSelection(
+    public function isProductOptionValueAvailableForItemBundleOptionSelection(
         ProductCustomOptionValuesInterface $productOptionValue,
         AbstractItem $item,
         Option $bundleOption,
         Product $product
     ): bool {
-        $isAvailable = $this->isAvailableForBundleSelection(
+        $isAvailable = $this->isAvailableForBundleOptionSelection(
             $productOptionValue,
             $bundleOption,
             $product
@@ -238,8 +238,75 @@ class Data
         return $checkResult->getData('is_available');
     }
 
-    private function isAvailableForBundleSelection(DataObject $dataObject, Option $bundleOption, Product $product): bool
-    {
+    public function isProductOptionAvailableForBundleOptionSelection(
+        Product\Option $productOption,
+        Option $bundleOption,
+        Product $product
+    ): bool {
+        $isAvailable = $this->isAvailableForBundleOptionSelection(
+            $productOption,
+            $bundleOption,
+            $product
+        );
+
+        $checkResult = new DataObject();
+        $checkResult->setData(
+            'is_available',
+            $isAvailable
+        );
+
+        $eventData = [
+            'product_option' => $productOption,
+            'bundle_option'  => $bundleOption,
+            'product'        => $product,
+            'result'         => $checkResult
+        ];
+
+        $this->eventManager->dispatch(
+            'catalog_product_option_composite_option_available',
+            $eventData
+        );
+
+        return $checkResult->getData('is_available');
+    }
+
+    public function isProductOptionValueAvailableForBundleOptionSelection(
+        ProductCustomOptionValuesInterface $productOptionValue,
+        Option $bundleOption,
+        Product $product
+    ): bool {
+        $isAvailable = $this->isAvailableForBundleOptionSelection(
+            $productOptionValue,
+            $bundleOption,
+            $product
+        );
+
+        $checkResult = new DataObject();
+        $checkResult->setData(
+            'is_available',
+            $isAvailable
+        );
+
+        $eventData = [
+            'product_option_value' => $productOptionValue,
+            'bundle_option'        => $bundleOption,
+            'product'              => $product,
+            'result'               => $checkResult
+        ];
+
+        $this->eventManager->dispatch(
+            'catalog_product_option_composite_option_value_available',
+            $eventData
+        );
+
+        return $checkResult->getData('is_available');
+    }
+
+    private function isAvailableForBundleOptionSelection(
+        DataObject $dataObject,
+        Option $bundleOption,
+        Product $product
+    ): bool {
         $allowHideProductIds = $dataObject->getData('allow_hide_product_ids');
 
         if ($allowHideProductIds) {

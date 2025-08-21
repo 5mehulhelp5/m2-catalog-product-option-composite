@@ -161,7 +161,7 @@ class Multiple extends \Magento\Catalog\Block\Product\View\Options\Type\Select\M
         $store = $this->getProduct()->getStore();
 
         foreach ($option->getValues() as $optionValue) {
-            if ($this->helper->isProductOptionValueAvailableForBundleSelection(
+            if ($this->helper->isProductOptionValueAvailableForItemBundleOptionSelection(
                 $optionValue,
                 $this->getItem(),
                 $this->getBundleOption(),

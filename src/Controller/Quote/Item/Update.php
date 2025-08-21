@@ -195,7 +195,7 @@ class Update extends Cart implements HttpPostActionInterface
 
         /** @var Option $productOption */
         foreach ($productOptions as $productOption) {
-            if (! $this->helper->isProductOptionAvailableForBundleSelection(
+            if (! $this->helper->isProductOptionAvailableForItemBundleOptionSelection(
                 $productOption,
                 $item,
                 $bundleOption,

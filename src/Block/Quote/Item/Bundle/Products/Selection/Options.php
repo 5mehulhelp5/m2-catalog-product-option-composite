@@ -116,7 +116,7 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
 
         /** @var Product\Option $productOption */
         foreach ($productOptions as $productOption) {
-            if (! $this->helper->isProductOptionAvailableForBundleSelection(
+            if (! $this->helper->isProductOptionAvailableForItemBundleOptionSelection(
                 $productOption,
                 $this->getItem(),
                 $this->getBundleOption(),
