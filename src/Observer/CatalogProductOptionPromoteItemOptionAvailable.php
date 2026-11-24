@@ -2,53 +2,54 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Observer;
 
 use Infrangible\CatalogProductOptionComposite\Helper\Data;
-use Magento\Catalog\Model\Product\Option;
+use Magento\Catalog\Model\Product;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use Magento\Quote\Model\Quote\Item;
+use Magento\Quote\Model\Quote\Item\AbstractItem;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * A promoted option is only available if it is not restricted to children or the item contains one of them.
  */
 class CatalogProductOptionPromoteItemOptionAvailable implements ObserverInterface
 {
-    /** @var Data */
-    protected $helper;
-
-    public function __construct(Data $helper)
+    /**
+     * @param Data $helper
+     */
+    public function __construct(protected Data $helper)
     {
-        $this->helper = $helper;
     }
 
+    /**
+     * Sets the result to unavailable if the option is restricted to children that the item does not contain.
+     *
+     * @param Observer $observer
+     *
+     * @return void
+     */
     public function execute(Observer $observer): void
     {
-        /** @var Item $item */
         $item = $observer->getData('item');
-
-        /** @var Option $productOption */
         $productOption = $observer->getData('product_option');
-
-        /** @var DataObject $result */
         $checkResult = $observer->getData('result');
 
-        $isAvailable = $checkResult->getData('is_available');
+        if (! $item instanceof AbstractItem || ! $productOption instanceof Product\Option ||
+            ! $checkResult instanceof DataObject || ! $checkResult->getData('is_available')) {
 
-        if ($isAvailable) {
-            $isAvailable = $this->helper->isProductOptionAvailableForItem(
-                $productOption,
-                $item
-            );
+            return;
         }
 
-        $checkResult->setData(
-            'is_available',
-            $isAvailable
-        );
+        if (! $this->helper->isProductOptionAvailableForItem($productOption, $item)) {
+            $checkResult->setData('is_available', false);
+        }
     }
 }

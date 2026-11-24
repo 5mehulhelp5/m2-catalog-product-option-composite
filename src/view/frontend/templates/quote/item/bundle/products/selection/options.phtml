@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
@@ -19,50 +19,50 @@ use Magento\Framework\View\TemplateEngine\Php;
 $bundleOption = $block->getBundleOption();
 $product = $block->getProduct();
 $options = $block->getOptions();
+$key = sprintf('%d-%d', $bundleOption->getId(), $product->getId());
+$priceBoxSelector = sprintf("[data-price-box-id='quote-item-bundle-selection-id-%s'][data-role=priceBox]", $key);
 ?>
 
 <?php if ($options): ?>
     <script type="text/x-magento-init">
         {
-            "#quote-item-bundle-selection-<?= /* @noEscape */ $bundleOption->getId(); ?>": {
+            "#quote-item-bundle-selection-<?= /* @noEscape */ $key ?>": {
                 "priceOptions": {
                     "optionConfig": <?= /* @noEscape */ $block->getJsonConfig(); ?>,
                     "controlContainer": ".field",
-                    "priceHolderSelector": "[data-price-box-id='quote-item-bundle-selection-id-<?= $bundleOption->getId(); ?>'][data-role=priceBox]"
+                    "priceHolderSelector": "<?= /* @noEscape */ $priceBoxSelector ?>"
                 }
             }
         }
     </script>
-    <div class="product-options-wrapper quote-item-bundle-selection-options-wrapper" id="quote-item-bundle-selection-options-wrapper-<?= /* @noEscape */ $bundleOption->getId(); ?>">
+    <div class="product-options-wrapper quote-item-bundle-selection-options-wrapper"
+         id="quote-item-bundle-selection-options-wrapper-<?= /* @noEscape */ $key ?>">
         <div class="fieldset">
             <?php foreach ($options as $option): ?>
-                <?= $block->getBundleOptionHtml(
-                        $bundleOption,
-                        $product,
-                        $option); ?>
+                <?= $block->getBundleOptionHtml($bundleOption, $product, $option) ?>
             <?php endforeach; ?>
         </div>
     </div>
     <div class="product-options-price">
         <div class="price-box"
              data-role="priceBox"
-             data-price-box-id="quote-item-bundle-selection-id-<?= $bundleOption->getId(); ?>">
+             data-price-box-id="quote-item-bundle-selection-id-<?= /* @noEscape */ $key ?>">
             <?= /* @noEscape */ $block->renderAmount(
                 [
-                    'price_id'          => 'quote-item-bundle-selection-price-' . $bundleOption->getId(),
+                    'price_id'          => 'quote-item-bundle-selection-price-' . $key,
                     'price_type'        => 'finalPrice',
                     'include_container' => true,
                     'schema'            => 'item_view'
                 ]
-            ); ?>
+            ) ?>
         </div>
         <script type="text/x-magento-init">
             {
-                "[data-role=priceBox][data-price-box-id=quote-item-bundle-selection-id-<?= /* @noEscape */ $bundleOption->getId(); ?>]": {
+                "[data-role=priceBox][data-price-box-id=quote-item-bundle-selection-id-<?= /* @noEscape */ $key ?>]": {
                     "priceBox": {
                         "priceConfig": {
-                            "priceFormat": <?= /* @noEscape */ $block->getPriceFormatJson(); ?>,
-                            "prices": <?= /* @noEscape */ $block->getPricesJson(); ?>
+                            "priceFormat": <?= /* @noEscape */ $block->getPriceFormatJson() ?>,
+                            "prices": <?= /* @noEscape */ $block->getPricesJson() ?>
                         }
                     }
                 }

@@ -1,115 +1,124 @@
-<?php /** @noinspection PhpDeprecationInspection */
+<?php
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Controller\Quote\Item;
 
+use Exception;
 use FeWeDev\Base\Variables;
 use Infrangible\Core\Helper\Product;
 use Infrangible\Core\Helper\Registry;
+use Infrangible\Core\Helper\Stores;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Checkout\Model\Session;
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
-use Magento\Framework\App\ActionInterface;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Controller\Result\Forward;
+use Magento\Framework\Controller\Result\ForwardFactory;
+use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 use Magento\Quote\Model\Quote\Item;
+use Psr\Log\LoggerInterface;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * Shows the page with the custom options of the products of a bundle item in the cart: the item of the parameter
+ * "item_id", or the last bundle item of the cart.
  */
-class Bundle extends Action implements ActionInterface
+class Bundle implements HttpGetActionInterface
 {
-    /** @var Session */
-    protected $checkoutSession;
-
-    /** @var Registry */
-    protected $registryHelper;
-
-    /** @var PageFactory */
-    protected $resultPageFactory;
-
-    /** @var Variables */
-    protected $variables;
-
-    /** @var Product */
-    protected $productHelper;
-
+    /**
+     * @param RequestInterface $request
+     * @param Session $checkoutSession
+     * @param Registry $registryHelper
+     * @param PageFactory $resultPageFactory
+     * @param ForwardFactory $resultForwardFactory
+     * @param Variables $variables
+     * @param Product $productHelper
+     * @param Stores $storeHelper
+     * @param LoggerInterface $logging
+     */
     public function __construct(
-        Context $context,
-        Session $checkoutSession,
-        Registry $registryHelper,
-        PageFactory $resultPageFactory,
-        Variables $variables,
-        Product $productHelper
+        protected RequestInterface $request,
+        protected Session $checkoutSession,
+        protected Registry $registryHelper,
+        protected PageFactory $resultPageFactory,
+        protected ForwardFactory $resultForwardFactory,
+        protected Variables $variables,
+        protected Product $productHelper,
+        protected Stores $storeHelper,
+        protected LoggerInterface $logging
     ) {
-        parent::__construct($context);
-
-        $this->checkoutSession = $checkoutSession;
-        $this->registryHelper = $registryHelper;
-        $this->resultPageFactory = $resultPageFactory;
-        $this->variables = $variables;
-        $this->productHelper = $productHelper;
     }
 
     /**
-     * @throws NoSuchEntityException
-     * @throws LocalizedException
-     * @throws \Exception
+     * Shows the page of the bundle item, or the page "not found" if the cart has no such item.
+     *
+     * @return Page|Forward
      */
-    public function execute()
+    public function execute(): Page|Forward
     {
-        $quote = $this->checkoutSession->getQuote();
+        try {
+            $item = $this->getItem();
 
-        if ($quote) {
-            $itemId = $this->getRequest()->getParam('item_id');
-
-            if (! $itemId) {
-                foreach ($quote->getAllVisibleItems() as $item) {
-                    if ($item->getProduct()->getTypeId() === 'bundle') {
-                        $itemId = $item->getId();
-                    }
-                }
+            if ($item === null) {
+                return $this->resultForwardFactory->create()->forward('noRoute');
             }
 
-            if ($itemId) {
-                /** @var Item $item */
-                foreach ($quote->getAllItems() as $item) {
-                    if ($item->getId() == $itemId) {
-                        $this->registryHelper->register(
-                            'current_item',
-                            $item
-                        );
+            $product = $this->productHelper->loadProduct(
+                $this->variables->intValue($item->getData('product_id')),
+                $this->variables->intValue($this->storeHelper->getStore()->getId())
+            );
+        } catch (Exception $exception) {
+            $this->logging->error($exception);
 
-                        $product =
-                            $this->productHelper->loadProduct($this->variables->intValue($item->getData('product_id')));
+            return $this->resultForwardFactory->create()->forward('noRoute');
+        }
 
-                        $this->registryHelper->register(
-                            'current_product',
-                            $product
-                        );
+        $item->setProduct($product);
 
-                        $item->setProduct($product);
+        $this->registryHelper->register('current_item', $item, false, true);
+        $this->registryHelper->register('current_product', $product, false, true);
 
-                        $resultPage = $this->resultPageFactory->create();
+        $resultPage = $this->resultPageFactory->create();
 
-                        $headline = $product->getData('quote_item_bundle_headline');
+        $headline = $product->getData('quote_item_bundle_headline');
 
-                        $resultPage->getConfig()->getTitle()->set(
-                            $this->variables->isEmpty($headline) ? $product->getName() : $headline
-                        );
+        $title = is_string($headline) && trim($headline) !== '' ? $headline : $product->getName();
 
-                        return $resultPage;
-                    }
-                }
+        $resultPage->getConfig()->getTitle()->set($this->variables->stringValue($title));
+
+        return $resultPage;
+    }
+
+    /**
+     * Returns the bundle item of the parameter "item_id", or the last bundle item of the cart without parameter.
+     *
+     * @return Item|null
+     * @throws Exception
+     */
+    private function getItem(): ?Item
+    {
+        $itemId = $this->request->getParam('item_id');
+        $bundleItem = null;
+
+        foreach ($this->checkoutSession->getQuote()->getAllVisibleItems() as $item) {
+            if (! $item instanceof Item || $item->getProduct()->getTypeId() !== Type::TYPE_CODE) {
+                continue;
+            }
+
+            if ($itemId === null || $itemId === '') {
+                $bundleItem = $item;
+            } elseif (is_scalar($itemId) && (string)$itemId === $this->variables->stringValue($item->getId())) {
+                return $item;
             }
         }
 
-        $this->_forward('noRoute');
-
-        return null;
+        return $bundleItem;
     }
 }

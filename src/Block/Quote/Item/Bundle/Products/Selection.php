@@ -1,14 +1,20 @@
-<?php /** @noinspection PhpDeprecationInspection */
+<?php
 
 declare(strict_types=1);
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
 
 namespace Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products;
 
 use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection\Options;
+use LogicException;
 use Magento\Bundle\Model\Option;
-use Magento\Catalog\Block\Product\Context;
 use Magento\Catalog\Block\Product\Image;
-use Magento\Catalog\Block\Product\ImageBuilder;
+use Magento\Catalog\Block\Product\ImageFactory;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Pricing\Price\FinalPrice;
 use Magento\Framework\Exception\LocalizedException;
@@ -16,66 +22,116 @@ use Magento\Framework\Pricing\Render;
 use Magento\Framework\View\Element\Template;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * A product of a bundle item in the cart: image, name, price and custom options.
  */
 class Selection extends Template
 {
-    /** @var ImageBuilder */
-    protected $imageBuilder;
+    /** @var Option|null */
+    private ?Option $bundleOption = null;
 
-    /** @var Option */
-    private $bundleOption;
+    /** @var Product|null */
+    private ?Product $product = null;
 
-    /** @var Product */
-    private $product;
-
-    public function __construct(Context $context, array $data = [])
+    /**
+     * @param Template\Context $context
+     * @param ImageFactory $imageFactory
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     */
+    public function __construct(Template\Context $context, protected ImageFactory $imageFactory, array $data = [])
     {
-        parent::__construct(
-            $context,
-            $data
-        );
-
-        $this->imageBuilder = $context->getImageBuilder();
+        parent::__construct($context, $data);
     }
 
+    /**
+     * Returns the bundle option of the product.
+     *
+     * @return Option
+     */
     public function getBundleOption(): Option
     {
+        if ($this->bundleOption === null) {
+            throw new LogicException('Bundle option is not defined');
+        }
+
         return $this->bundleOption;
     }
 
+    /**
+     * Sets the bundle option of the product.
+     *
+     * @param Option $bundleOption
+     *
+     * @return void
+     */
     public function setBundleOption(Option $bundleOption): void
     {
         $this->bundleOption = $bundleOption;
     }
 
+    /**
+     * Returns the product.
+     *
+     * @return Product
+     */
     public function getProduct(): Product
     {
+        if ($this->product === null) {
+            throw new LogicException('Product is not defined');
+        }
+
         return $this->product;
     }
 
+    /**
+     * Sets the product.
+     *
+     * @param Product $product
+     *
+     * @return void
+     */
     public function setProduct(Product $product): void
     {
         $this->product = $product;
     }
 
+    /**
+     * Returns the image of the product.
+     *
+     * @param Product $product
+     * @param string $imageId
+     * @param array $attributes
+     * @phpstan-param array<string, string> $attributes
+     *
+     * @return Image
+     */
     public function getImage(Product $product, string $imageId, array $attributes = []): Image
     {
-        return $this->imageBuilder->create(
-            $product,
-            $imageId,
-            $attributes
-        );
+        return $this->imageFactory->create($product, $imageId, $attributes);
     }
 
     /**
-     * @throws LocalizedException
+     * Renders the price of the product like in product lists.
+     *
+     * @param Product $product
+     *
+     * @return string
      */
     public function getProductPrice(Product $product): string
     {
-        $priceRender = $this->getPriceRender();
+        try {
+            $priceRender = $this->getLayout()->getBlock('product.price.render.default');
+        } catch (LocalizedException $exception) {
+            $this->_logger->error($exception);
+
+            return '';
+        }
+
+        if (! $priceRender instanceof Render) {
+            return '';
+        }
+
+        $priceRender->setData('is_product_list', true);
 
         return $priceRender->render(
             FinalPrice::PRICE_CODE,
@@ -90,33 +146,24 @@ class Selection extends Template
     }
 
     /**
-     * @throws LocalizedException
+     * Renders the custom options of the bundle for the product of the bundle option.
+     *
+     * @param Option $bundleOption
+     * @param Product $product
+     *
+     * @return string
      */
-    protected function getPriceRender(): Render
-    {
-        /** @var Render $renderer */
-        $renderer = $this->getLayout()->getBlock('product.price.render.default');
-
-        $renderer->setData(
-            'is_product_list',
-            true
-        );
-
-        return $renderer;
-    }
-
     public function getOptionsHtml(Option $bundleOption, Product $product): string
     {
-        /** @var Options $optionsBlock */
         $optionsBlock = $this->getChildBlock('quote.item.bundle.products.selection.options');
 
-        if ($optionsBlock) {
-            $optionsBlock->setBundleOption($bundleOption);
-            $optionsBlock->setProduct($product);
-
-            return $optionsBlock->toHtml();
-        } else {
+        if (! $optionsBlock instanceof Options) {
             return '';
         }
+
+        $optionsBlock->setBundleOption($bundleOption);
+        $optionsBlock->setProduct($product);
+
+        return $optionsBlock->toHtml();
     }
 }

@@ -1,171 +1,162 @@
-<?php /** @noinspection PhpDeprecationInspection */
+<?php /** @noinspection PhpDeprecationInspection The plugin changes the request of the cart model. */
 
 declare(strict_types=1);
+
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
 
 namespace Infrangible\CatalogProductOptionComposite\Plugin\Checkout\Model;
 
 use FeWeDev\Base\Variables;
+use Infrangible\CatalogProductOptionComposite\Helper\Data;
 use Infrangible\Core\Helper\Stores;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Option;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * Removes the values of custom options of a bundle product from the request to add it to the cart, if the options
+ * are restricted to products of bundle options that were not selected.
  */
 class Cart
 {
-    /** @var Stores */
-    protected $storeHelper;
-
-    /** @var ProductRepositoryInterface */
-    protected $productRepository;
-
-    /** @var Variables */
-    protected $variables;
-
+    /**
+     * @param Stores $storeHelper
+     * @param ProductRepositoryInterface $productRepository
+     * @param Variables $variables
+     * @param Data $helper
+     */
     public function __construct(
-        Stores $storeHelper,
-        ProductRepositoryInterface $productRepository,
-        Variables $variables
+        protected Stores $storeHelper,
+        protected ProductRepositoryInterface $productRepository,
+        protected Variables $variables,
+        protected Data $helper
     ) {
-        $this->storeHelper = $storeHelper;
-        $this->productRepository = $productRepository;
-        $this->variables = $variables;
     }
 
     /**
-     * @throws LocalizedException
-     * @noinspection PhpUnusedParameterInspection
+     * Removes the values of the options that are restricted to products of bundle options that were not selected.
+     *
+     * @param \Magento\Checkout\Model\Cart $subject
+     * @param mixed $productInfo
+     * @param mixed $requestInfo
+     *
+     * @return array
+     * @phpstan-return array{0: mixed, 1: mixed}
+     * @noinspection PhpUnusedParameterInspection The signature of the plugin is given.
      */
-    public function beforeAddProduct(\Magento\Checkout\Model\Cart $subject, $productInfo, $requestInfo = null): array
-    {
-        if (is_array($requestInfo)) {
-            if (array_key_exists(
-                'options',
-                $requestInfo
-            )) {
-                $product = $this->getProduct($productInfo);
+    public function beforeAddProduct(
+        \Magento\Checkout\Model\Cart $subject,
+        mixed $productInfo,
+        mixed $requestInfo = null
+    ): array {
+        if (! is_array($requestInfo) || ! isset($requestInfo[ 'options' ]) || ! is_array($requestInfo[ 'options' ])) {
+            return [$productInfo, $requestInfo];
+        }
 
-                if ($product->isComposite()) {
-                    $selectedOptions = $requestInfo[ 'options' ];
+        $product = $this->getProduct($productInfo);
 
-                    /** @var Option $option */
-                    foreach ($product->getOptions() as $option) {
-                        $allowHideProductIds = $option->getData('allow_hide_product_ids');
+        if ($product === null || $product->getTypeId() !== Type::TYPE_CODE) {
+            return [$productInfo, $requestInfo];
+        }
 
-                        if (! $this->variables->isEmpty($allowHideProductIds)) {
-                            if ($option->getProduct()->getTypeId() === Type::TYPE_CODE) {
-                                $selectedBundleOptions = $requestInfo[ 'bundle_option' ];
+        $selectedProductIds = $this->getSelectedProductIds($product, $requestInfo[ 'bundle_option' ] ?? []);
+        $selectedOptions = $requestInfo[ 'options' ];
 
-                                $keep = false;
+        /** @var Option $option */
+        foreach ($product->getOptions() ?? [] as $option) {
+            $allowHideProductIds = $this->helper->getAllowHideProductIds($option);
 
-                                /** @var Type $typeInstance */
-                                $typeInstance = $product->getTypeInstance();
+            if (count($allowHideProductIds) > 0 &&
+                count(array_intersect($allowHideProductIds, $selectedProductIds)) === 0) {
 
-                                foreach ($allowHideProductIds as $allowHideProductId) {
-                                    if (preg_match(
-                                        '/[0-9]+_[0-9]+/',
-                                        $allowHideProductId
-                                    )) {
-                                        [$bundleOptionId, $bundleProductId] = explode(
-                                            '_',
-                                            $allowHideProductId
-                                        );
-
-                                        if (array_key_exists(
-                                            $bundleOptionId,
-                                            $selectedBundleOptions
-                                        )) {
-                                            $bundleOptionSelections = $typeInstance->getSelectionsCollection(
-                                                [$bundleOptionId],
-                                                $product
-                                            );
-
-                                            /** @var Product $bundleOptionSelection */
-                                            foreach ($bundleOptionSelections as $bundleOptionSelection) {
-                                                $bundleOptionSelectionId =
-                                                    $bundleOptionSelection->getData('selection_id');
-
-                                                if ($selectedBundleOptions[ $bundleOptionId ] ===
-                                                    $bundleOptionSelectionId) {
-
-                                                    $selectionProductId = $bundleOptionSelection->getId();
-
-                                                    if ($selectionProductId == $bundleProductId) {
-                                                        $keep = true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (! $keep) {
-                                    unset($selectedOptions[ $option->getId() ]);
-                                }
-                            }
-                        }
-                    }
-
-                    $requestInfo[ 'options' ] = $selectedOptions;
-                }
+                unset($selectedOptions[ $option->getId() ]);
             }
         }
+
+        $requestInfo[ 'options' ] = $selectedOptions;
 
         return [$productInfo, $requestInfo];
     }
 
     /**
-     * @param Product|int|string $productInfo
+     * Returns the selected products of the bundle as "<bundle option id>_<product id>".
      *
-     * @throws LocalizedException
+     * @param Product $product
+     * @param mixed $selectedBundleOptions bundle option id => selection id or list of selection ids
+     *
+     * @return string[]
      */
-    protected function getProduct($productInfo): Product
+    private function getSelectedProductIds(Product $product, mixed $selectedBundleOptions): array
+    {
+        $typeInstance = $product->getTypeInstance();
+
+        if (! is_array($selectedBundleOptions) || count($selectedBundleOptions) === 0 ||
+            ! $typeInstance instanceof Type) {
+
+            return [];
+        }
+
+        $selectedSelectionIds = [];
+
+        foreach ($selectedBundleOptions as $bundleOptionId => $selectionIds) {
+            foreach (is_array($selectionIds) ? $selectionIds : [$selectionIds] as $selectionId) {
+                if (is_scalar($selectionId)) {
+                    $selectedSelectionIds[ sprintf('%s_%s', $bundleOptionId, $selectionId) ] = true;
+                }
+            }
+        }
+
+        $selectedProductIds = [];
+
+        $selections = $typeInstance->getSelectionsCollection(array_keys($selectedBundleOptions), $product);
+
+        /** @var Product $selection */
+        foreach ($selections as $selection) {
+            $bundleOptionId = $this->variables->stringValue($selection->getData('option_id'));
+            $selectionId = $this->variables->stringValue($selection->getData('selection_id'));
+
+            if (isset($selectedSelectionIds[ sprintf('%s_%s', $bundleOptionId, $selectionId) ])) {
+                $selectedProductIds[] =
+                    sprintf('%s_%s', $bundleOptionId, $this->variables->stringValue($selection->getId()));
+            }
+        }
+
+        return $selectedProductIds;
+    }
+
+    /**
+     * Returns the product to add, null if it does not exist; the cart reports the error then.
+     *
+     * @param mixed $productInfo
+     *
+     * @return Product|null
+     */
+    private function getProduct(mixed $productInfo): ?Product
     {
         if ($productInfo instanceof Product) {
-            $product = $productInfo;
-            if (! $product->getId()) {
-                throw new LocalizedException(
-                    __("The product wasn't found. Verify the product and try again.")
-                );
-            }
-        } elseif (is_int($productInfo) || is_string($productInfo)) {
-            $storeId = $this->storeHelper->getStore()->getId();
-            try {
-                $product = $this->productRepository->getById(
-                    $productInfo,
-                    false,
-                    $storeId
-                );
-            } catch (NoSuchEntityException $e) {
-                throw new LocalizedException(
-                    __("The product wasn't found. Verify the product and try again."),
-                    $e
-                );
-            }
-        } else {
-            throw new LocalizedException(
-                __("The product wasn't found. Verify the product and try again.")
-            );
+            return $productInfo;
         }
 
-        $currentWebsiteId = $this->storeHelper->getStore()->getWebsiteId();
-
-        if (! is_array($product->getWebsiteIds()) || ! in_array(
-                $currentWebsiteId,
-                $product->getWebsiteIds()
-            )) {
-            throw new LocalizedException(
-                __("The product wasn't found. Verify the product and try again.")
-            );
+        if (! is_numeric($productInfo)) {
+            return null;
         }
 
-        return $product;
+        try {
+            $product = $this->productRepository->getById(
+                $this->variables->intValue($productInfo),
+                false,
+                $this->variables->intValue($this->storeHelper->getStore()->getId())
+            );
+        } catch (NoSuchEntityException) {
+            return null;
+        }
+
+        return $product instanceof Product ? $product : null;
     }
 }

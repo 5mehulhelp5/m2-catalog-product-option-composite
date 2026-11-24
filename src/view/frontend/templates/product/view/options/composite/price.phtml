@@ -2,28 +2,32 @@
 
 declare(strict_types=1);
 
-use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle;
-use Magento\Framework\View\TemplateEngine\Php;
-
 /**
  * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
+use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\TemplateEngine\Php;
+
 /** @var Php $this */
+/** @var Escaper $escaper */
 /** @var Bundle $block */
 
 $bundleOption = $block->getBundleOption();
+$bundleOptionId = (int)$bundleOption->getId();
 ?>
 
 <script type="text/x-magento-init">
     {
-        "#bundle-option-<?= /* @noEscape */ $block->getBundleOption()->getId(); ?>": {
+        "#bundle-option-<?= /* @noEscape */ $bundleOptionId ?>": {
             "priceOptions": {
                 "optionConfig": <?= /* @noEscape */ $block->getOptionsJsonConfig() ?>,
                 "controlContainer": ".field",
-                "priceHolderSelector": "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOption->getId(); ?>]"
+                "priceHolderSelector":
+                    "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOptionId ?>]"
             }
         }
     }
@@ -32,25 +36,24 @@ $bundleOption = $block->getBundleOption();
 <div class="product-options-price">
     <div class="price-box"
          data-role="priceBox"
-         data-price-box-id="bundle-selection-id-<?= $bundleOption->getId(); ?>">
+         data-price-box-id="bundle-selection-id-<?= /* @noEscape */ $bundleOptionId ?>">
         <?= /* @noEscape */ $block->renderAmount(
             [
-                'display_label'     =>  __('Selected product options'),
-                'price_id'          => 'bundle-selection-price-' . $bundleOption->getId(),
+                'display_label'     => __('Selected product options'),
+                'price_id'          => 'bundle-selection-price-' . $bundleOptionId,
                 'price_type'        => 'finalPrice',
                 'include_container' => true,
                 'schema'            => 'item_view'
-
             ]
-        ); ?>
+        ) ?>
     </div>
     <script type="text/x-magento-init">
         {
-            "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOption->getId(); ?>]": {
+            "[data-role=priceBox][data-price-box-id=bundle-selection-id-<?= /* @noEscape */ $bundleOptionId ?>]": {
                 "priceBox": {
                     "priceConfig": {
-                        "priceFormat": <?= /* @noEscape */ $block->getPriceFormatJson(); ?>,
-                        "prices": <?= /* @noEscape */ $block->getPricesJson(); ?>
+                        "priceFormat": <?= /* @noEscape */ $block->getPriceFormatJson() ?>,
+                        "prices": <?= /* @noEscape */ $block->getPricesJson() ?>
                     }
                 }
             }

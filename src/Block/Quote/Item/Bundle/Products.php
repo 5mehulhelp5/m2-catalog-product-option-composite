@@ -2,62 +2,72 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle;
 
+use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle;
 use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection;
 use Infrangible\CatalogProductOptionComposite\Helper\Data;
 use Infrangible\Core\Helper\Registry;
 use Magento\Bundle\Model\Option;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\View\Element\Template;
-use Magento\Quote\Model\Quote\Item;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * The products of a bundle item in the cart, each with its custom options.
  */
-class Products extends Template
+class Products extends Bundle
 {
-    /** @var Registry */
-    protected $registryHelper;
-
-    /** @var Data */
-    protected $helper;
-
-    public function __construct(Template\Context $context, Registry $registryHelper, Data $helper, array $data = [])
-    {
-        parent::__construct(
-            $context,
-            $data
-        );
-
-        $this->registryHelper = $registryHelper;
-        $this->helper = $helper;
+    /**
+     * @param Template\Context $context
+     * @param Registry $registryHelper
+     * @param Data $helper
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     */
+    public function __construct(
+        Template\Context $context,
+        Registry $registryHelper,
+        protected Data $helper,
+        array $data = []
+    ) {
+        parent::__construct($context, $registryHelper, $data);
     }
 
-    public function getItem(): Item
-    {
-        return $this->registryHelper->registry('current_item');
-    }
-
+    /**
+     * Returns the bundle options and selected products of the item.
+     *
+     * @return array<int, array{option: Option, product: Product}>
+     */
     public function getItemBundleSelections(): array
     {
         return $this->helper->getItemBundleSelections($this->getItem());
     }
 
+    /**
+     * Renders the product of the bundle option.
+     *
+     * @param Option $bundleOption
+     * @param Product $product
+     *
+     * @return string
+     */
     public function getSelectionHtml(Option $bundleOption, Product $product): string
     {
-        /** @var Selection $selectionBlock */
         $selectionBlock = $this->getChildBlock('quote.item.bundle.products.selection');
 
-        if ($selectionBlock) {
-            $selectionBlock->setBundleOption($bundleOption);
-            $selectionBlock->setProduct($product);
-
-            return $selectionBlock->toHtml();
-        } else {
+        if (! $selectionBlock instanceof Selection) {
             return '';
         }
+
+        $selectionBlock->setBundleOption($bundleOption);
+        $selectionBlock->setProduct($product);
+
+        return $selectionBlock->toHtml();
     }
 }

@@ -2,152 +2,153 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite;
 
 use FeWeDev\Base\Json;
 use FeWeDev\Base\Variables;
+use Infrangible\CatalogProductOption\Helper\Data as ProductOptionHelper;
 use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite;
 use Infrangible\CatalogProductOptionComposite\Helper\Data;
+use Infrangible\CatalogProductOptionComposite\Traits\OptionsPriceBox;
 use Infrangible\Core\Helper\Registry;
+use LogicException;
 use Magento\Bundle\Model\Option;
-use Magento\Catalog\Pricing\Price\CustomOptionPrice;
-use Magento\Catalog\Pricing\Price\CustomOptionPriceInterface;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Locale\Format;
-use Magento\Framework\Pricing\Render;
 use Magento\Framework\View\Element\Template;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * The custom options of a bundle product that are restricted to products of a bundle option, shown with this bundle
+ * option: the configuration of the script that shows and hides them, and their price box.
  */
 class Bundle extends Composite
 {
-    /** @var Data */
-    protected $helper;
+    use OptionsPriceBox;
 
-    /** @var Format */
-    protected $localeFormat;
+    /** @var Option|null */
+    private ?Option $bundleOption = null;
 
-    /** @var \Infrangible\CatalogProductOption\Helper\Data */
-    protected $productOptionHelper;
-
-    /** @var Option */
-    private $bundleOption;
-
+    /**
+     * @param Template\Context $context
+     * @param Registry $registryHelper
+     * @param Json $json
+     * @param Variables $variables
+     * @param Data $helper
+     * @param Format $localeFormat
+     * @param ProductOptionHelper $productOptionHelper
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     */
     public function __construct(
         Template\Context $context,
         Registry $registryHelper,
         Json $json,
         Variables $variables,
         Data $helper,
-        Format $localeFormat,
-        \Infrangible\CatalogProductOption\Helper\Data $productOptionHelper,
+        protected Format $localeFormat,
+        protected ProductOptionHelper $productOptionHelper,
         array $data = []
     ) {
-        parent::__construct(
-            $context,
-            $registryHelper,
-            $json,
-            $variables,
-            $data
-        );
-
-        $this->helper = $helper;
-        $this->localeFormat = $localeFormat;
-        $this->productOptionHelper = $productOptionHelper;
+        parent::__construct($context, $registryHelper, $json, $variables, $helper, $data);
     }
 
+    /**
+     * Returns the bundle option.
+     *
+     * @return Option
+     */
     public function getBundleOption(): Option
     {
+        if ($this->bundleOption === null) {
+            throw new LogicException('Bundle option is not defined');
+        }
+
         return $this->bundleOption;
     }
 
+    /**
+     * Sets the bundle option.
+     *
+     * @param Option $bundleOption
+     *
+     * @return void
+     */
     public function setBundleOption(Option $bundleOption): void
     {
         $this->bundleOption = $bundleOption;
     }
 
+    /**
+     * Returns the custom options that are restricted to products of the bundle option.
+     *
+     * @return \Magento\Catalog\Model\Product\Option[]
+     */
     public function getOptions(): array
     {
-        $options = parent::getOptions();
-
-        foreach ($options as $key => $option) {
-            if (! $this->helper->isProductOptionValueAvailableForBundleOption(
+        return array_filter(
+            parent::getOptions(),
+            fn($option) => $this->helper->isProductOptionValueAvailableForBundleOption(
                 $option,
                 $this->getBundleOption()
-            )) {
-                unset($options[ $key ]);
-            }
-        }
-
-        return $options;
+            )
+        );
     }
 
+    /**
+     * Returns true: the options are shown with a bundle option.
+     *
+     * @return bool
+     */
     public function isBundleOption(): bool
     {
         return true;
     }
 
-    public function renderAmount(array $arguments): string
-    {
-        /** @var CustomOptionPrice $customOptionPrice */
-        $customOptionPrice = $this->getProduct()->getPriceInfo()->getPrice('custom_option_price');
-
-        $optionAmount = $customOptionPrice->getCustomAmount(
-            $this->getOptionsPrice(),
-            null,
-            [CustomOptionPriceInterface::CONFIGURATION_OPTION_FLAG => true]
-        );
-
-        /** @var Render $renderer */
-        try {
-            $renderer = $this->getLayout()->getBlock('product.price.render.default');
-
-            return $renderer->renderAmount(
-                $optionAmount,
-                $customOptionPrice,
-                $this->getProduct(),
-                $arguments
-            );
-        } catch (LocalizedException $exception) {
-            return '';
-        }
-    }
-
+    /**
+     * Returns the price of the selected custom options when the page is shown: none are selected.
+     *
+     * @return float
+     */
     public function getOptionsPrice(): float
     {
         return 0;
     }
 
-    public function getPriceFormatJson(): string
-    {
-        return $this->json->encode($this->localeFormat->getPriceFormat());
-    }
-
-    public function getPricesJson(): string
-    {
-        return $this->json->encode(
-            [
-                'baseOldPrice' => [
-                    'amount' => 0,
-                ],
-                'oldPrice'     => [
-                    'amount' => 0,
-                ],
-                'basePrice'    => [
-                    'amount' => 0,
-                ],
-                'finalPrice'   => [
-                    'amount' => 0,
-                ]
-            ]
-        );
-    }
-
+    /**
+     * Returns the price configuration of the custom options as JSON.
+     *
+     * @return string
+     */
     public function getOptionsJsonConfig(): string
     {
         return $this->productOptionHelper->getOptionsJsonConfig($this->getOptions());
+    }
+
+    /**
+     * Returns the id of the bundle option.
+     *
+     * @return string
+     */
+    protected function getBundleOptionKey(): string
+    {
+        return $this->variables->stringValue($this->getBundleOption()->getId());
+    }
+
+    /**
+     * Returns the data as JSON.
+     *
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     *
+     * @return string
+     */
+    protected function encodeJson(array $data): string
+    {
+        return $this->json->encode($data) ?? '{}';
     }
 }

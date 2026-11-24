@@ -1,6 +1,6 @@
 /**
  * @author      Andreas Knollmann
- * @copyright   Copyright (c) 2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
@@ -18,10 +18,10 @@ define([
 
             const name = $(element).attr('name');
 
-            const matches = (name.match(/\[([^\]]+)\]/g) || []).length;
+            const matches = (name.match(/\[([^\]]+)]/g) || []).length;
 
             if (matches > 1) {
-                const re = /\[([^\]]+)\]/g;
+                const re = /\[([^\]]+)]/g;
 
                 let id;
                 let match;

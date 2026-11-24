@@ -1,65 +1,75 @@
-<?php /** @noinspection PhpDeprecationInspection */
+<?php /** @noinspection PhpDeprecationInspection The constructor of Magento's options block needs the registry. */
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection;
 
-use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection\Options\Type\ItemBundleSelectionOptionInterface;
+use FeWeDev\Base\Variables;
 use Infrangible\CatalogProductOptionComposite\Helper\Data;
+use Infrangible\CatalogProductOptionComposite\Traits\OptionsPriceBox;
+use Infrangible\CatalogProductOptionWrapper\Helper\Data as WrapperHelper;
 use Infrangible\Core\Helper\Registry;
+use LogicException;
 use Magento\Bundle\Model\Option;
+use Magento\Catalog\Helper\Data as CatalogHelper;
 use Magento\Catalog\Model\Product;
-use Magento\Catalog\Pricing\Price\CustomOptionPrice;
-use Magento\Catalog\Pricing\Price\CustomOptionPriceInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Json\EncoderInterface;
 use Magento\Framework\Locale\Format;
-use Magento\Framework\Pricing\Render;
+use Magento\Framework\Pricing\Helper\Data as PricingHelper;
 use Magento\Framework\Stdlib\ArrayUtils;
+use Magento\Framework\View\Element\AbstractBlock;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Quote\Model\Quote\Item;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * The custom options of a bundle item that are available for a product of a bundle option, with their price.
  */
 class Options extends \Magento\Catalog\Block\Product\View\Options
 {
-    /** @var Registry */
-    protected $registryHelper;
+    use OptionsPriceBox;
 
-    /** @var Data */
-    protected $helper;
+    /** @var Option|null */
+    private ?Option $bundleOption = null;
 
-    /** @var \Magento\Catalog\Helper\Data */
-    protected $catalogHelper;
+    /** @var Product|null */
+    private ?Product $selectionProduct = null;
 
-    /** @var Format */
-    protected $localeFormat;
-
-    /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
-    protected $wrapperHelper;
-
-    /** @var Option */
-    private $bundleOption;
-
-    /** @var Product */
-    private $product;
-
+    /**
+     * @param Context $context
+     * @param PricingHelper $pricingHelper
+     * @param CatalogHelper $catalogData
+     * @param EncoderInterface $jsonEncoder
+     * @param Product\Option $option
+     * @param \Magento\Framework\Registry $registry
+     * @param ArrayUtils $arrayUtils
+     * @param Registry $registryHelper
+     * @param Data $helper
+     * @param Format $localeFormat
+     * @param WrapperHelper $wrapperHelper
+     * @param Variables $variables
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     */
     public function __construct(
         Context $context,
-        \Magento\Framework\Pricing\Helper\Data $pricingHelper,
-        \Magento\Catalog\Helper\Data $catalogData,
+        PricingHelper $pricingHelper,
+        CatalogHelper $catalogData,
         EncoderInterface $jsonEncoder,
         Product\Option $option,
         \Magento\Framework\Registry $registry,
         ArrayUtils $arrayUtils,
-        Registry $registryHelper,
-        Data $helper,
-        \Magento\Catalog\Helper\Data $catalogHelper,
-        Format $localeFormat,
-        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper,
+        protected Registry $registryHelper,
+        protected Data $helper,
+        protected Format $localeFormat,
+        protected WrapperHelper $wrapperHelper,
+        protected Variables $variables,
         array $data = []
     ) {
         parent::__construct(
@@ -72,50 +82,91 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
             $arrayUtils,
             $data
         );
-
-        $this->registryHelper = $registryHelper;
-        $this->helper = $helper;
-        $this->catalogHelper = $catalogHelper;
-        $this->localeFormat = $localeFormat;
-        $this->wrapperHelper = $wrapperHelper;
     }
 
+    /**
+     * Returns the bundle option.
+     *
+     * @return Option
+     */
     public function getBundleOption(): Option
     {
+        if ($this->bundleOption === null) {
+            throw new LogicException('Bundle option is not defined');
+        }
+
         return $this->bundleOption;
     }
 
+    /**
+     * Sets the bundle option.
+     *
+     * @param Option $bundleOption
+     *
+     * @return void
+     */
     public function setBundleOption(Option $bundleOption): void
     {
         $this->bundleOption = $bundleOption;
     }
 
+    /**
+     * Returns the product of the bundle option.
+     *
+     * @return Product
+     */
     public function getProduct(): Product
     {
-        return $this->product;
-    }
+        if ($this->selectionProduct === null) {
+            throw new LogicException('Product is not defined');
+        }
 
-    public function setProduct(Product $product = null): void
-    {
-        $this->product = $product;
-    }
-
-    public function getItem(): Item
-    {
-        return $this->registryHelper->registry('current_item');
+        return $this->selectionProduct;
     }
 
     /**
+     * Sets the product of the bundle option.
+     *
+     * @param Product|null $product
+     *
+     * @return $this
+     */
+    public function setProduct(?Product $product = null): static
+    {
+        $this->selectionProduct = $product;
+
+        return $this;
+    }
+
+    /**
+     * Returns the bundle item of the page.
+     *
+     * @return Item
+     */
+    public function getItem(): Item
+    {
+        $item = $this->registryHelper->registry('current_item');
+
+        if (! $item instanceof Item) {
+            throw new LogicException('Item is not defined');
+        }
+
+        return $item;
+    }
+
+    /**
+     * Returns the custom options of the bundle that are available for the product of the bundle option.
+     *
+     * Options that are excluded from promotion ("promote") are left out.
+     *
      * @return Product\Option[]
      */
     public function getOptions(): array
     {
-        $productOptions = $this->getItem()->getProduct()->getOptions();
-
         $options = [];
 
         /** @var Product\Option $productOption */
-        foreach ($productOptions as $productOption) {
+        foreach ($this->getItem()->getProduct()->getOptions() ?? [] as $productOption) {
             if (! $this->helper->isProductOptionAvailableForItemBundleOptionSelection(
                 $productOption,
                 $this->getItem(),
@@ -135,150 +186,106 @@ class Options extends \Magento\Catalog\Block\Product\View\Options
         return $options;
     }
 
+    /**
+     * Renders the option in the wrapper with the child block of its type.
+     *
+     * The child block is "<name>.type.<group>", or "<name>.type.default" for types without own block.
+     *
+     * @param Option $bundleOption
+     * @param Product $product
+     * @param Product\Option $option
+     *
+     * @return string
+     */
     public function getBundleOptionHtml(Option $bundleOption, Product $product, Product\Option $option): string
     {
-        $type = $option->getType();
+        $groupName = $option->getGroupByType($option->getType());
 
-        $groupName = $option->getGroupByType($type);
+        foreach ([$groupName === '' ? 'default' : $groupName, 'default'] as $rendererGroupName) {
+            $rendererBlockId = sprintf('%s.type.%s', $this->getNameInLayout(), $rendererGroupName);
 
-        $groupName = $groupName == '' ? 'default' : $groupName;
-
-        $rendererBlockId = sprintf(
-            '%s.type.%s',
-            $this->getNameInLayout(),
-            $groupName
-        );
-
-        /** @var ItemBundleSelectionOptionInterface $renderer */
-        $renderer = $this->getChildBlock($rendererBlockId);
-
-        if (! $renderer) {
-            $rendererBlockId = sprintf(
-                '%s.type.default',
-                $this->getNameInLayout()
-            );
-
-            /** @var ItemBundleSelectionOptionInterface $renderer */
             $renderer = $this->getChildBlock($rendererBlockId);
-        }
 
-        if ($renderer) {
-            $renderer->setItem($this->getItem());
-            $renderer->setBundleOption($bundleOption);
-            $renderer->setProduct($product);
-            $renderer->setOption($option);
+            if ($renderer instanceof Options\Type\ItemBundleSelectionOptionInterface &&
+                $renderer instanceof AbstractBlock) {
 
-            $optionHtml = $this->getChildHtml(
-                $rendererBlockId,
-                false
-            );
+                $renderer->setItem($this->getItem());
+                $renderer->setBundleOption($bundleOption);
+                $renderer->setProduct($product);
+                $renderer->setOption($option);
 
-            return $this->wrapperHelper->renderWrapper($this, $option, $optionHtml);
+                return $this->wrapperHelper->renderWrapper(
+                    $this,
+                    $option,
+                    $this->getChildHtml($rendererBlockId, false)
+                );
+            }
         }
 
         return '';
     }
 
+    /**
+     * Returns the price of the selected values of the options.
+     *
+     * @return float
+     */
     public function getOptionsPrice(): float
     {
         $optionsPrice = 0.;
 
         foreach ($this->getOptions() as $option) {
-            $optionsPrice += $this->getOptionPrice(
-                $this->getProduct(),
-                $option
-            );
+            $optionsPrice += $this->getOptionPrice($this->getProduct(), $option);
         }
 
         return $optionsPrice;
     }
 
+    /**
+     * Returns the price of the selected value of the option, with tax.
+     *
+     * @param Product $product
+     * @param Product\Option $option
+     *
+     * @return float
+     */
     private function getOptionPrice(Product $product, Product\Option $option): float
     {
-        $type = $option->getType();
-
         try {
-            $group = $option->groupFactory($type);
-        } catch (LocalizedException $exception) {
+            $group = $option->groupFactory($option->getType());
+        } catch (LocalizedException) {
             return 0;
         }
 
         $item = $this->getItem();
 
-        $itemOption = $item->getOptionByCode('option_' . $option->getId());
+        $itemOption = $item->getOptionsByCode()[ 'option_' . $option->getId() ] ?? null;
 
-        if (! $itemOption) {
+        if ($itemOption === null) {
             return 0;
         }
 
         $group->setOption($option);
-        $group->setDataUsingMethod(
-            'configuration_item',
-            $item
-        );
-        $group->setDataUsingMethod(
-            'configuration_item_option',
-            $itemOption
-        );
+        $group->setDataUsingMethod('configuration_item', $item);
+        $group->setDataUsingMethod('configuration_item_option', $itemOption);
 
-        $basePrice = $product->getFinalPrice();
-
-        $optionPrice = $group->getOptionPrice(
-            $itemOption->getValue(),
-            $basePrice
-        );
-
-        return $this->catalogHelper->getTaxPrice(
+        return $this->_catalogData->getTaxPrice(
             $product,
-            $optionPrice,
+            $group->getOptionPrice($this->variables->stringValue($itemOption->getValue()), $product->getFinalPrice()),
             true
         );
     }
 
-    public function renderAmount(array $arguments): string
+    /**
+     * Returns the data as JSON.
+     *
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     *
+     * @return string
+     */
+    protected function encodeJson(array $data): string
     {
-        /** @var CustomOptionPrice $customOptionPrice */
-        $customOptionPrice = $this->getProduct()->getPriceInfo()->getPrice('custom_option_price');
-
-        $optionAmount = $customOptionPrice->getCustomAmount(
-            $this->getOptionsPrice(),
-            null,
-            [CustomOptionPriceInterface::CONFIGURATION_OPTION_FLAG => true]
-        );
-
-        /** @var Render $renderer */
-        $renderer = $this->getLayout()->getBlock('product.price.render.default');
-
-        return $renderer->renderAmount(
-            $optionAmount,
-            $customOptionPrice,
-            $this->getProduct(),
-            $arguments
-        );
-    }
-
-    public function getPriceFormatJson(): string
-    {
-        return $this->_jsonEncoder->encode($this->localeFormat->getPriceFormat());
-    }
-
-    public function getPricesJson(): string
-    {
-        return $this->_jsonEncoder->encode(
-            [
-                'baseOldPrice' => [
-                    'amount' => 0,
-                ],
-                'oldPrice'     => [
-                    'amount' => 0,
-                ],
-                'basePrice'    => [
-                    'amount' => 0,
-                ],
-                'finalPrice'   => [
-                    'amount' => 0,
-                ],
-            ]
-        );
+        return $this->_jsonEncoder->encode($data);
     }
 }

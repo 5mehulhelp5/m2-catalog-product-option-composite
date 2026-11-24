@@ -1,0 +1,12 @@
+{
+    "catalog_product_option": {
+        "column": {
+            "allow_hide_product_ids": true
+        }
+    },
+    "catalog_product_option_type_value": {
+        "column": {
+            "allow_hide_product_ids": true
+        }
+    }
+}

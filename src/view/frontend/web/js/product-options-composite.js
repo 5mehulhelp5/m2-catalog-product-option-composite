@@ -1,6 +1,6 @@
 /**
  * @author      Andreas Knollmann
- * @copyright   Copyright (c) 2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
@@ -11,22 +11,21 @@ define([
     'use strict';
 
     const globalOptions = {
-        config: {},
+        config: {
+            allowHideProductIds: {}
+        },
         productTriggerSelector: '.column.main'
     };
 
     $.widget('mage.productOptionsComposite', {
         options: globalOptions,
 
-        _create: function() {
-        },
-
         _init: function() {
             const self = this;
 
             domReady(function() {
                 $(self.options.productTriggerSelector).on('swatch.changed bundle_changed', function (event, selectedProductIds) {
-                    if (selectedProductIds !== null) {
+                    if (selectedProductIds !== null && selectedProductIds !== undefined) {
                         self.handleAllowHide(
                             Array.isArray(selectedProductIds) ? selectedProductIds : [selectedProductIds]);
                     }
@@ -39,14 +38,35 @@ define([
         handleAllowHide: function(selectedProductIds) {
             const self = this;
 
-            $.each(this.options.config.allowHideProductIds, function(optionId, optionData) {
+            $.each(this.options.config.allowHideProductIds || {}, function(optionId, optionData) {
                 const option = $('#product-option-' + optionId);
 
                 self.handleAllowHideSelect(selectedProductIds, optionId, optionData, option);
                 self.handleAllowHideRadio(selectedProductIds, optionId, optionData, option);
                 self.handleAllowHideCheckbox(selectedProductIds, optionId, optionData, option);
                 self.handleAllowHideProduct(selectedProductIds, optionId, optionData, option);
+                self.handleAllowHideOther(selectedProductIds, optionId, optionData, option);
             });
+        },
+
+        handleAllowHideOther: function(selectedProductIds, optionId, optionData, option) {
+            const self = this;
+
+            const handled = option.find('#select_' + optionId).length > 0 ||
+                option.find('input[type="radio"][name="options[' + optionId + ']"]').length > 0 ||
+                option.find('input[type="checkbox"][name="options[' + optionId + '][]"]').length > 0 ||
+                option.hasClass('field-wrapper-product');
+
+            if (! handled && optionData.option && ! self.handleAllowHideOption(selectedProductIds, optionData, option)) {
+                option.find('input, textarea, select').each(function() {
+                    const field = $(this);
+
+                    if (field.val()) {
+                        field.val('');
+                        field.trigger('change');
+                    }
+                });
+            }
         },
 
         handleAllowHideSelect: function(selectedProductIds, optionId, optionData, option) {
@@ -244,6 +264,8 @@ define([
         },
 
         isSelected: function(selectedProductIds, productIds) {
+            const self = this;
+
             let show = false;
 
             if (selectedProductIds) {
@@ -258,7 +280,7 @@ define([
                     $.each(selectedProductIds, function(groupId, selectedProductIdsList) {
                         if (selectedProductIdsList && productIds[groupId]) {
                             $.each(selectedProductIdsList, function(key, selectedProductId) {
-                                if (productIds[groupId].indexOf(selectedProductId) !== -1) {
+                                if (self.containsProductId(productIds[groupId], selectedProductId)) {
                                     show = true;
                                 }
                             });
@@ -266,7 +288,7 @@ define([
                     });
                 } else {
                     $.each(selectedProductIds, function(key, selectedProductId) {
-                        if (productIds.indexOf(selectedProductId) !== -1) {
+                        if (self.containsProductId(productIds, selectedProductId)) {
                             show = true;
                         }
                     });
@@ -274,6 +296,10 @@ define([
             }
 
             return show;
+        },
+
+        containsProductId: function(productIds, productId) {
+            return $.map(productIds, String).indexOf(String(productId)) !== -1;
         }
     });
 

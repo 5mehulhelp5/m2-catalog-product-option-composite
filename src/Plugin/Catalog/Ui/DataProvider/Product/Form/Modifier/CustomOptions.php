@@ -2,90 +2,153 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Plugin\Catalog\Ui\DataProvider\Product\Form\Modifier;
 
 use FeWeDev\Base\Arrays;
+use FeWeDev\Base\Variables;
+use Infrangible\CatalogProductOptionComposite\Helper\Data;
 use Magento\Bundle\Model\Option;
 use Magento\Bundle\Model\Product\Type;
 use Magento\Catalog\Model\Locator\LocatorInterface;
 use Magento\Catalog\Model\Product;
+use Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions as Modifier;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Ui\Component\Form\Element\DataType\Text;
 use Magento\Ui\Component\Form\Element\Select;
 use Magento\Ui\Component\Form\Field;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * Adds the field "Allow & Hide" to the custom options and option values of composite products in the product form:
+ * the children of configurable products or the products of bundle options that the option or value is restricted to.
  */
 class CustomOptions
 {
-    public const FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME = 'allow_hide_product_ids';
+    /** Name of the field. */
+    public const FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME = Data::ALLOW_HIDE_PRODUCT_IDS;
 
-    /** @var Arrays */
-    protected $arrays;
-
-    /** @var LocatorInterface */
-    protected $locator;
-
-    public function __construct(Arrays $arrays, LocatorInterface $locator)
-    {
-        $this->arrays = $arrays;
-        $this->locator = $locator;
+    /**
+     * @param Arrays $arrays
+     * @param LocatorInterface $locator
+     * @param Variables $variables
+     */
+    public function __construct(
+        protected Arrays $arrays,
+        protected LocatorInterface $locator,
+        protected Variables $variables
+    ) {
     }
 
     /**
-     * @noinspection PhpUnusedParameterInspection
+     * Adds the field to the options and option values of composite products with children.
+     *
+     * @param Modifier $subject
+     * @param array $meta
+     * @phpstan-param array<int|string, mixed> $meta
+     *
+     * @return array
+     * @phpstan-return array<int|string, mixed>
+     * @noinspection PhpUnusedParameterInspection The signature of the plugin is given.
      */
-    public function afterModifyMeta(
-        \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions $subject,
-        array $meta
-    ): array {
-        /** @var Product $product */
+    public function afterModifyMeta(Modifier $subject, array $meta): array
+    {
         $product = $this->locator->getProduct();
 
-        if (! $product->getId() || ! $product->isComposite()) {
+        if (! $product instanceof Product || ! $product->getId() || ! $product->isComposite()) {
             return $meta;
         }
 
+        $productOptions = $this->getProductOptions($product);
+
+        if (count($productOptions) === 0) {
+            return $meta;
+        }
+
+        $fieldConfig = $this->getProductIdsFieldConfig(
+            static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME,
+            __('Allow & Hide')->render(),
+            $productOptions,
+            200
+        );
+
+        $optionPath = [
+            Modifier::GROUP_CUSTOM_OPTIONS_NAME,
+            'children',
+            Modifier::GRID_OPTIONS_NAME,
+            'children',
+            'record',
+            'children',
+            Modifier::CONTAINER_OPTION,
+            'children'
+        ];
+
+        $meta = $this->arrays->addDeepValue(
+            $meta,
+            array_merge(
+                $optionPath,
+                [Modifier::CONTAINER_COMMON_NAME, 'children', static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME]
+            ),
+            $fieldConfig
+        );
+
+        return $this->arrays->addDeepValue(
+            $meta,
+            array_merge(
+                $optionPath,
+                [
+                    Modifier::GRID_TYPE_SELECT_NAME,
+                    'children',
+                    'record',
+                    'children',
+                    static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME
+                ]
+            ),
+            $fieldConfig
+        );
+    }
+
+    /**
+     * Returns the choices of the field.
+     *
+     * These are the children of a configurable product, or the products of the options of a bundle product, grouped
+     * by option.
+     *
+     * @param Product $product
+     *
+     * @return array
+     * @phpstan-return list<array<string, mixed>>
+     */
+    protected function getProductOptions(Product $product): array
+    {
         $productOptions = [];
 
         $typeInstance = $product->getTypeInstance();
 
         if ($typeInstance instanceof Configurable) {
-            $childProducts = $typeInstance->getUsedProducts($product);
-
             /** @var Product $childProduct */
-            foreach ($childProducts as $childProduct) {
+            foreach ($typeInstance->getUsedProducts($product) as $childProduct) {
                 $productOptions[] = [
-                    'value' => $childProduct->getId(),
-                    'label' => sprintf(
-                        '%s [%s]',
-                        $childProduct->getName(),
-                        $childProduct->getSku()
-                    )
+                    'value' => $this->variables->stringValue($childProduct->getId()),
+                    'label' => sprintf('%s [%s]', $childProduct->getName(), $childProduct->getSku())
                 ];
             }
         } elseif ($typeInstance instanceof Type) {
-            $options = $typeInstance->getOptionsCollection($product);
-
             /** @var Option $option */
-            foreach ($options as $option) {
-                $optionSelections = $typeInstance->getSelectionsCollection(
-                    [$option->getId()],
-                    $product
-                );
-
+            foreach ($typeInstance->getOptionsCollection($product) as $option) {
                 $optionProductOptions = [];
 
                 /** @var Product $optionSelection */
-                foreach ($optionSelections as $optionSelection) {
+                foreach ($typeInstance->getSelectionsCollection([$option->getId()], $product) as $optionSelection) {
                     $optionProductOptions[] = [
                         'value' => sprintf(
                             '%s_%s',
-                            $option->getId(),
-                            $optionSelection->getId()
+                            $this->variables->stringValue($option->getId()),
+                            $this->variables->stringValue($optionSelection->getId())
                         ),
                         'label' => sprintf(
                             '%s - %s [%s]',
@@ -104,59 +167,21 @@ class CustomOptions
             }
         }
 
-        if (count($productOptions) === 0) {
-            return $meta;
-        }
-
-        $meta = $this->arrays->addDeepValue(
-            $meta,
-            [
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GROUP_CUSTOM_OPTIONS_NAME,
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GRID_OPTIONS_NAME,
-                'children',
-                'record',
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::CONTAINER_OPTION,
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::CONTAINER_COMMON_NAME,
-                'children',
-                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME
-            ],
-            $this->getProductIdsFieldConfig(
-                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME,
-                __('Allow & Hide')->render(),
-                $productOptions,
-                200
-            )
-        );
-
-        return $this->arrays->addDeepValue(
-            $meta,
-            [
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GROUP_CUSTOM_OPTIONS_NAME,
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GRID_OPTIONS_NAME,
-                'children',
-                'record',
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::CONTAINER_OPTION,
-                'children',
-                \Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\CustomOptions::GRID_TYPE_SELECT_NAME,
-                'children',
-                'record',
-                'children',
-                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME
-            ],
-            $this->getProductIdsFieldConfig(
-                static::FIELD_ALLOW_HIDE_PRODUCT_IDS_NAME,
-                __('Allow & Hide')->render(),
-                $productOptions,
-                200
-            )
-        );
+        return $productOptions;
     }
 
+    /**
+     * Returns the configuration of the field, a multiple select with search.
+     *
+     * @param string $scopeName
+     * @param string $label
+     * @param array $productOptions
+     * @param int $sortOrder
+     * @phpstan-param list<array<string, mixed>> $productOptions
+     *
+     * @return array
+     * @phpstan-return array<string, mixed>
+     */
     protected function getProductIdsFieldConfig(
         string $scopeName,
         string $label,

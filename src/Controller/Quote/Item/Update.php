@@ -1,212 +1,251 @@
-<?php /** @noinspection PhpDeprecationInspection */
+<?php /** @noinspection PhpDeprecationInspection The cart helper of m2-core saves the options with the cart model. */
 
 declare(strict_types=1);
 
-namespace Infrangible\CatalogProductOptionComposite\Controller\Quote\Item;
-
-use Infrangible\CatalogProductOptionComposite\Helper\Data;
-use Magento\Catalog\Model\Product;
-use Magento\Catalog\Model\Product\Option;
-use Magento\Checkout\Controller\Cart;
-use Magento\Checkout\Model\Session;
-use Magento\Framework\App\Action\Context;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Data\Form\FormKey\Validator;
-use Magento\Framework\DataObject;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Quote\Model\Quote\Item;
-use Magento\Store\Model\StoreManagerInterface;
-
 /**
  * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
-class Update extends Cart implements HttpPostActionInterface
+
+namespace Infrangible\CatalogProductOptionComposite\Controller\Quote\Item;
+
+use Exception;
+use FeWeDev\Base\Variables;
+use Infrangible\CatalogProductOptionComposite\Helper\Data;
+use Infrangible\Core\Helper\Cart as CartHelper;
+use Magento\Bundle\Model\Option as BundleOption;
+use Magento\Catalog\Model\Product;
+use Magento\Catalog\Model\Product\Option;
+use Magento\Checkout\Model\Cart;
+use Magento\Checkout\Model\Session;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Framework\Controller\Result\RedirectFactory;
+use Magento\Framework\Data\Form\FormKey\Validator;
+use Magento\Framework\DataObject;
+use Magento\Framework\Event\ManagerInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Message\ManagerInterface as MessageManager;
+use Magento\Quote\Model\Quote;
+use Magento\Quote\Model\Quote\Item;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Saves the custom options of the products of a bundle item in the cart. Options with values of the bundle that are
+ * available for the products of the item and that are missing in the request are removed from the item.
+ */
+class Update implements HttpPostActionInterface
 {
-    /** @var Session */
-    protected $checkoutSession;
-
-    /** @var Data */
-    protected $helper;
-
-    /** @var \Infrangible\Core\Helper\Cart */
-    protected $cartHelper;
-
+    /**
+     * @param RequestInterface $request
+     * @param Validator $formKeyValidator
+     * @param Session $checkoutSession
+     * @param Cart $cart
+     * @param CartHelper $cartHelper
+     * @param Data $helper
+     * @param ManagerInterface $eventManager
+     * @param RedirectFactory $resultRedirectFactory
+     * @param MessageManager $messageManager
+     * @param Variables $variables
+     * @param LoggerInterface $logging
+     */
     public function __construct(
-        Context $context,
-        ScopeConfigInterface $scopeConfig,
-        Session $checkoutSession,
-        StoreManagerInterface $storeManager,
-        Validator $formKeyValidator,
-        \Infrangible\Core\Helper\Cart $cartHelper,
-        \Magento\Checkout\Model\Cart $cart,
-        Data $helper
+        protected RequestInterface $request,
+        protected Validator $formKeyValidator,
+        protected Session $checkoutSession,
+        protected Cart $cart,
+        protected CartHelper $cartHelper,
+        protected Data $helper,
+        protected ManagerInterface $eventManager,
+        protected RedirectFactory $resultRedirectFactory,
+        protected MessageManager $messageManager,
+        protected Variables $variables,
+        protected LoggerInterface $logging
     ) {
-        parent::__construct(
-            $context,
-            $scopeConfig,
-            $checkoutSession,
-            $storeManager,
-            $formKeyValidator,
-            $cart
-        );
-
-        $this->checkoutSession = $checkoutSession;
-        $this->helper = $helper;
-        $this->cartHelper = $cartHelper;
     }
 
     /**
-     * @throws LocalizedException
+     * Saves the custom options and returns to the cart.
+     *
+     * @return Redirect
      */
-    public function execute()
+    public function execute(): Redirect
     {
-        $request = $this->getRequest();
+        $resultRedirect = $this->resultRedirectFactory->create()->setPath('checkout/cart');
 
-        if (! $this->_formKeyValidator->validate($request)) {
-            return $this->resultRedirectFactory->create()->setPath('*/*/');
+        $itemId = $this->request->getParam('item_id');
+
+        if (! $this->formKeyValidator->validate($this->request) || ! is_scalar($itemId) || (string)$itemId === '') {
+            return $resultRedirect;
         }
 
-        $cartData = $request->getParam('cart');
+        $itemId = (string)$itemId;
 
-        if (! is_array($cartData)) {
-            $cartData = [];
-        }
-
-        $itemId = $request->getParam('item_id');
-
-        if ($itemId) {
-            if (! array_key_exists(
-                $itemId,
-                $cartData
-            )) {
-                $cartData[ $itemId ] = [];
-            }
-
-            if (! array_key_exists(
-                'options',
-                $cartData[ $itemId ]
-            )) {
-                $cartData[ $itemId ][ 'options' ] = [];
-            }
-
+        try {
             $quote = $this->checkoutSession->getQuote();
 
-            if ($quote) {
-                /** @var Item $item */
-                foreach ($quote->getAllItems() as $item) {
-                    if ($item->getId() == $itemId) {
-                        foreach ($this->helper->getItemBundleSelections($item) as $itemBundleSelection) {
-                            /** @var \Magento\Bundle\Model\Option $bundleOption */
-                            $bundleOption = $itemBundleSelection[ 'option' ];
-                            /** @var Product $selection */
-                            $selection = $itemBundleSelection[ 'product' ];
+            $cartData = $this->getCartData($quote, $itemId);
 
-                            $productOptions = $this->getOptions(
-                                $item,
-                                $bundleOption,
-                                $selection
-                            );
+            $cartDataObject = new DataObject($cartData);
 
-                            foreach ($productOptions as $option) {
-                                if (! array_key_exists(
-                                    $option->getId(),
-                                    $cartData[ $itemId ][ 'options' ]
-                                )) {
-                                    $cartData[ $itemId ][ 'options' ][ $option->getId() ] = null;
-                                }
-                            }
+            $this->eventManager->dispatch(
+                'catalog_product_option_composite_quote_item_bundle_update',
+                [
+                    'request'   => $this->request,
+                    'quote'     => $quote,
+                    'cart'      => $this->cart,
+                    'cart_data' => $cartDataObject
+                ]
+            );
 
-                            $cartDataObject = new DataObject($cartData);
+            $this->cartHelper->addItemCustomOptions($this->cart, $this->getArray($cartDataObject->getData()));
 
-                            $this->_eventManager->dispatch(
-                                'catalog_product_option_composite_quote_item_bundle_update_item_selection',
-                                [
-                                    'request'         => $request,
-                                    'quote'           => $quote,
-                                    'cart'            => $this->cart,
-                                    'item'            => $item,
-                                    'bundle_option'   => $bundleOption,
-                                    'selection'       => $selection,
-                                    'product_options' => $productOptions,
-                                    'cart_data'       => $cartDataObject
-                                ]
-                            );
+            $this->cart->save();
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
+        } catch (Exception $exception) {
+            $this->logging->error($exception);
 
-                            $cartData = $cartDataObject->getData();
-                        }
+            $this->messageManager->addErrorMessage(__('We can\'t update the shopping cart.')->render());
+        }
 
-                        $cartDataObject = new DataObject($cartData);
+        return $resultRedirect;
+    }
 
-                        $this->_eventManager->dispatch(
-                            'catalog_product_option_composite_quote_item_bundle_update_item',
-                            [
-                                'request'   => $request,
-                                'quote'     => $quote,
-                                'cart'      => $this->cart,
-                                'item'      => $item,
-                                'cart_data' => $cartDataObject
-                            ]
-                        );
+    /**
+     * Returns the posted cart data, after the observers of the events changed it.
+     *
+     * Every option with values of the item that is available for its products and not in the request gets an empty
+     * value: no value was selected.
+     *
+     * @param Quote $quote
+     * @param string $itemId
+     *
+     * @return array
+     * @phpstan-return array<int|string, mixed>
+     */
+    protected function getCartData(Quote $quote, string $itemId): array
+    {
+        $cartData = $this->getArray($this->request->getParam('cart'));
 
-                        $cartData = $cartDataObject->getData();
+        $itemData = $this->getArray($cartData[ $itemId ] ?? []);
+        $itemData[ 'options' ] = $this->getArray($itemData[ 'options' ] ?? []);
+        $cartData[ $itemId ] = $itemData;
+
+        foreach ($quote->getAllItems() as $item) {
+            if (! $item instanceof Item || $this->variables->stringValue($item->getId()) !== $itemId) {
+                continue;
+            }
+
+            foreach ($this->helper->getItemBundleSelections($item) as $itemBundleSelection) {
+                $bundleOption = $itemBundleSelection[ 'option' ];
+                $selection = $itemBundleSelection[ 'product' ];
+
+                $productOptions = $this->getOptions($item, $bundleOption, $selection);
+
+                foreach ($productOptions as $option) {
+                    $optionId = $this->variables->stringValue($option->getId());
+
+                    // the page has fields for options with values only, other options keep their value
+                    if ($option->getGroupByType() === Option::OPTION_GROUP_SELECT &&
+                        ! array_key_exists($optionId, $cartData[ $itemId ][ 'options' ])) {
+                        $cartData[ $itemId ][ 'options' ][ $optionId ] = null;
                     }
                 }
 
-                $cartDataObject = new DataObject($cartData);
-
-                $this->_eventManager->dispatch(
-                    'catalog_product_option_composite_quote_item_bundle_update',
+                $cartData = $this->dispatchCartData(
+                    'catalog_product_option_composite_quote_item_bundle_update_item_selection',
+                    $cartData,
                     [
-                        'request'   => $request,
-                        'quote'     => $quote,
-                        'cart'      => $this->cart,
-                        'cart_data' => $cartDataObject
+                        'request'         => $this->request,
+                        'quote'           => $quote,
+                        'cart'            => $this->cart,
+                        'item'            => $item,
+                        'bundle_option'   => $bundleOption,
+                        'selection'       => $selection,
+                        'product_options' => $productOptions
                     ]
                 );
-
-                $cartData = $cartDataObject->getData();
-
-                $this->cartHelper->addItemCustomOptions(
-                    $this->cart,
-                    $cartData
-                );
-
-                $this->cart->save();
             }
+
+            $cartData = $this->dispatchCartData(
+                'catalog_product_option_composite_quote_item_bundle_update_item',
+                $cartData,
+                [
+                    'request' => $this->request,
+                    'quote'   => $quote,
+                    'cart'    => $this->cart,
+                    'item'    => $item
+                ]
+            );
         }
 
-        return $this->_redirect('checkout/cart');
+        return $cartData;
     }
 
     /**
+     * Returns the options of the bundle that are available for the product of the bundle option of the item.
+     *
+     * @param Item $item
+     * @param BundleOption $bundleOption
+     * @param Product $product
+     *
      * @return Option[]
      */
-    protected function getOptions(
-        Item $item,
-        \Magento\Bundle\Model\Option $bundleOption,
-        Product $product
-    ): array {
-        $productOptions = $item->getProduct()->getOptions();
-
+    protected function getOptions(Item $item, BundleOption $bundleOption, Product $product): array
+    {
         $options = [];
 
         /** @var Option $productOption */
-        foreach ($productOptions as $productOption) {
-            if (! $this->helper->isProductOptionAvailableForItemBundleOptionSelection(
+        foreach ($item->getProduct()->getOptions() ?? [] as $productOption) {
+            if ($this->helper->isProductOptionAvailableForItemBundleOptionSelection(
                 $productOption,
                 $item,
                 $bundleOption,
                 $product
             )) {
-                continue;
+                $options[] = $productOption;
             }
-
-            $options[] = $productOption;
         }
 
         return $options;
+    }
+
+    /**
+     * Dispatches the event with the cart data and returns the cart data that the observers changed.
+     *
+     * @param string $eventName
+     * @param array $cartData
+     * @param array $eventData
+     * @phpstan-param array<int|string, mixed> $cartData
+     * @phpstan-param array<string, mixed> $eventData
+     *
+     * @return array
+     * @phpstan-return array<int|string, mixed>
+     */
+    private function dispatchCartData(string $eventName, array $cartData, array $eventData): array
+    {
+        $cartDataObject = new DataObject($cartData);
+
+        $eventData[ 'cart_data' ] = $cartDataObject;
+
+        $this->eventManager->dispatch($eventName, $eventData);
+
+        return $this->getArray($cartDataObject->getData());
+    }
+
+    /**
+     * Returns the value if it is an array, else an empty array.
+     *
+     * @param mixed $value
+     *
+     * @return array
+     * @phpstan-return array<int|string, mixed>
+     */
+    private function getArray(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
     }
 }

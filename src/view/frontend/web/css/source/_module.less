@@ -1,6 +1,6 @@
 /**
  * @author      Andreas Knollmann
- * @copyright   Copyright (c) 2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
@@ -12,20 +12,13 @@
                     position: absolute;
                     right: 56px;
                     top: 0;
-                    .lib-icon-font(
-                        '\e625',
-                        @_icon-font-size: 18px,
-                        @_icon-font-line-height: 20px,
-                        @_icon-font-text-hide: true,
-                        @_icon-font-color: @minicart-icons-color,
-                        @_icon-font-color-hover: @primary__color,
-                        @_icon-font-color-active: @minicart-icons-color
-                    );
+                    .lib-icon-font('\e625', @_icon-font-size: 18px, @_icon-font-line-height: 20px, @_icon-font-text-hide: true, @_icon-font-color: @minicart-icons-color, @_icon-font-color-hover: @primary__color, @_icon-font-color-active: @minicart-icons-color);
                 }
             }
         }
     }
 
+    /* phpcs:ignore Magento2.Less.ClassNaming -- the body class of the page handle contains underscores */
     .infrangible_catalogproductoptioncomposite-quote_item-bundle {
         .cart-container {
             .actions {
@@ -69,11 +62,12 @@
 }
 
 .media-width(@extremum, @break) when (@extremum = 'min') and (@break = @screen__m) {
+    /* phpcs:ignore Magento2.Less.ClassNaming -- the body class of the page handle contains underscores */
     .infrangible_catalogproductoptioncomposite-quote_item-bundle.page-products.page-layout-1column {
         .cart-container {
             .form-cart {
-                width: 100%;
                 float: none;
+                width: 100%;
 
                 .products-grid {
                     .product-item.quote-item-bundle-selection {
@@ -81,8 +75,8 @@
 
                         .product-item-info {
                             margin: 0 auto;
-                            width: 80%;
                             padding: 9px;
+                            width: 80%;
 
                             .product-image-container {
                                 display: block;
@@ -90,6 +84,7 @@
                             }
 
                             .product-item-details {
+                                /* phpcs:ignore Magento2.Less.ClassNaming -- the class of Magento's price box */
                                 .price-box.price-final_price {
                                     margin: 10px 0 0;
                                 }
@@ -123,7 +118,7 @@
                         }
 
                         .product-item-info:not(:hover) {
-                            padding: 10px 9px
+                            padding: 10px 9px;
                         }
                     }
                 }

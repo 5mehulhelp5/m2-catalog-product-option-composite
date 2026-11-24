@@ -2,161 +2,190 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 namespace Infrangible\CatalogProductOptionComposite\Helper;
 
+use Exception;
 use FeWeDev\Base\Variables;
 use Infrangible\CatalogProductOptionComposite\Block\Product\View\Options\Composite\Bundle;
+use Infrangible\CatalogProductOptionWrapper\Helper\Data as WrapperHelper;
+use Infrangible\Core\Helper\Product as ProductHelper;
+use Infrangible\Core\Helper\Stores;
 use Magento\Bundle\Model\Option;
 use Magento\Catalog\Block\Product\View\Options\AbstractOptions;
 use Magento\Catalog\Model\Product;
-use Magento\Framework\App\Helper\AbstractHelper;
-use Magento\Framework\App\Helper\Context;
 use Magento\Framework\View\Element\AbstractBlock;
+use Psr\Log\LoggerInterface;
 
 /**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ * Renders the custom options of a bundle product that are restricted to products of a bundle option with this bundle
+ * option on the product page.
  */
-class Output extends AbstractHelper
+class Output
 {
-    /** @var Data */
-    protected $helper;
-
-    /** @var \Infrangible\CatalogProductOptionWrapper\Helper\Data */
-    protected $wrapperHelper;
-
-    /** @var \Infrangible\Core\Helper\Product */
-    protected $productHelper;
-
-    /** @var Variables */
-    protected $variables;
-
     /** @var Product[] */
-    private $products = [];
+    private array $products = [];
 
+    /**
+     * @param Data $helper
+     * @param WrapperHelper $wrapperHelper
+     * @param ProductHelper $productHelper
+     * @param Stores $storeHelper
+     * @param Variables $variables
+     * @param LoggerInterface $logging
+     */
     public function __construct(
-        Context $context,
-        Data $helper,
-        \Infrangible\CatalogProductOptionWrapper\Helper\Data $wrapperHelper,
-        \Infrangible\Core\Helper\Product $productHelper,
-        Variables $variables
+        protected Data $helper,
+        protected WrapperHelper $wrapperHelper,
+        protected ProductHelper $productHelper,
+        protected Stores $storeHelper,
+        protected Variables $variables,
+        protected LoggerInterface $logging
     ) {
-        parent::__construct($context);
-
-        $this->helper = $helper;
-        $this->wrapperHelper = $wrapperHelper;
-        $this->productHelper = $productHelper;
-        $this->variables = $variables;
     }
 
+    /**
+     * Renders the custom options of the bundle product that are restricted to products of the bundle option.
+     *
+     * It uses the child blocks of the block: the renderers of the option types ("option.<group>"), the wrapper and
+     * the script ("product_options_composite").
+     *
+     * @param AbstractBlock $block
+     * @param Option $bundleOption
+     *
+     * @return string
+     */
     public function renderBundleOptionsHtml(AbstractBlock $block, Option $bundleOption): string
     {
+        $product = $this->getBundleProduct($bundleOption);
+
+        if ($product === null) {
+            return '';
+        }
+
         $optionsHtml = '';
 
-        try {
-            $productId = $bundleOption->getParentId();
+        foreach ($product->getOptions() ?? [] as $option) {
+            if ($option instanceof Product\Option &&
+                $this->helper->isProductOptionValueAvailableForBundleOption($option, $bundleOption)) {
 
-            if (array_key_exists(
-                $productId,
-                $this->products
-            )) {
-                $product = $this->products[ $productId ];
-            } else {
-                $product = $this->productHelper->loadProduct($this->variables->intValue($productId));
-
-                $this->products[ $productId ] = $product;
-            }
-
-            /** @var Product\Option $option */
-            foreach ($product->getOptions() as $option) {
-                if ($this->helper->isProductOptionValueAvailableForBundleOption(
+                $optionsHtml .= $this->wrapperHelper->renderWrapper(
+                    $block,
                     $option,
-                    $bundleOption
-                )) {
-                    $optionsHtml .= $this->wrapperHelper->renderWrapper(
-                        $block,
-                        $option,
-                        $this->getOptionHtml(
-                            $block,
-                            $product,
-                            $option
-                        )
-                    );
-                }
+                    $this->getOptionHtml($block, $product, $option)
+                );
             }
+        }
 
-            /** @var Bundle $compositeBlock */
-            $compositeBlock = $block->getChildBlock('product_options_composite');
+        $compositeBlock = $block->getChildBlock('product_options_composite');
 
-            if ($compositeBlock) {
-                $compositeBlock->setProduct($product);
-                $compositeBlock->setBundleOption($bundleOption);
+        if ($compositeBlock instanceof Bundle) {
+            $compositeBlock->setProduct($product);
+            $compositeBlock->setBundleOption($bundleOption);
 
-                $optionsHtml .= $compositeBlock->toHtml();
-            }
-        } catch (\Exception $exception) {
+            $optionsHtml .= $compositeBlock->toHtml();
         }
 
         return $optionsHtml;
     }
 
+    /**
+     * Renders the option with the child block of its type.
+     *
+     * The child block is "option.<group>", or "option.default" for options without group.
+     *
+     * @param AbstractBlock $block
+     * @param Product $product
+     * @param Product\Option $option
+     *
+     * @return string
+     */
     public function getOptionHtml(AbstractBlock $block, Product $product, Product\Option $option): string
     {
         $group = $option->getGroupByType($option->getType());
 
-        $childAlias = sprintf(
-            'option.%s',
-            $group == '' ? 'default' : $group
-        );
+        $childAlias = sprintf('option.%s', $group === '' ? 'default' : $group);
 
-        /** @var AbstractOptions $renderer */
         $renderer = $block->getChildBlock($childAlias);
+
+        if (! $renderer instanceof AbstractOptions) {
+            return '';
+        }
 
         $renderer->setProduct($product);
         $renderer->setOption($option);
 
-        return $block->getChildHtml(
-            $childAlias,
-            false
-        );
+        return $block->getChildHtml($childAlias, false);
     }
 
+    /**
+     * Renders the price box of the custom options of the bundle option, if it has any.
+     *
+     * It uses the child block "product_options_price".
+     *
+     * @param AbstractBlock $block
+     * @param Option $bundleOption
+     *
+     * @return string
+     */
     public function renderBundleOptionsPriceHtml(AbstractBlock $block, Option $bundleOption): string
     {
-        try {
-            $productId = $bundleOption->getParentId();
+        $product = $this->getBundleProduct($bundleOption);
+        $priceBlock = $block->getChildBlock('product_options_price');
 
-            if (array_key_exists(
-                $productId,
-                $this->products
-            )) {
-                $product = $this->products[ $productId ];
-            } else {
-                $product = $this->productHelper->loadProduct($this->variables->intValue($productId));
+        if ($product === null || ! $priceBlock instanceof Bundle) {
+            return '';
+        }
 
-                $this->products[ $productId ] = $product;
+        foreach ($product->getOptions() ?? [] as $option) {
+            if ($option instanceof Product\Option &&
+                $this->helper->isProductOptionValueAvailableForBundleOption($option, $bundleOption)) {
+
+                $priceBlock->setProduct($product);
+                $priceBlock->setBundleOption($bundleOption);
+
+                return $priceBlock->toHtml();
             }
-
-            foreach ($product->getOptions() as $option) {
-                if ($this->helper->isProductOptionValueAvailableForBundleOption(
-                    $option,
-                    $bundleOption
-                )) {
-                    /** @var Bundle $priceBlock */
-                    $priceBlock = $block->getChildBlock('product_options_price');
-
-                    if ($priceBlock) {
-                        $priceBlock->setProduct($product);
-                        $priceBlock->setBundleOption($bundleOption);
-
-                        return $priceBlock->toHtml();
-                    }
-                }
-            }
-        } catch (\Exception $exception) {
         }
 
         return '';
+    }
+
+    /**
+     * Returns the bundle product of the bundle option in the current store, null if it cannot be loaded.
+     *
+     * @param Option $bundleOption
+     *
+     * @return Product|null
+     */
+    private function getBundleProduct(Option $bundleOption): ?Product
+    {
+        $productId = $bundleOption->getParentId();
+
+        if (! is_numeric($productId)) {
+            return null;
+        }
+
+        $productId = $this->variables->intValue($productId);
+
+        if (! array_key_exists($productId, $this->products)) {
+            try {
+                $this->products[ $productId ] = $this->productHelper->loadProduct(
+                    $productId,
+                    $this->variables->intValue($this->storeHelper->getStore()->getId())
+                );
+            } catch (Exception $exception) {
+                $this->logging->error($exception);
+
+                return null;
+            }
+        }
+
+        return $this->products[ $productId ];
     }
 }

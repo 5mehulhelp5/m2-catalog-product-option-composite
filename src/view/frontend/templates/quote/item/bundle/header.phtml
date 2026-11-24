@@ -1,30 +1,31 @@
-<?php /** @noinspection PhpUnhandledExceptionInspection */
+<?php
 
 declare(strict_types=1);
 
 /**
  * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
  * @license     http://www.opensource.org/licenses/mit-license.php MIT
  */
 
 use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle;
+use Infrangible\CatalogProductOptionComposite\ViewModel\ProductAttribute;
 use Magento\Framework\Escaper;
-use Magento\Framework\View\TemplateEngine\Php;
 
-/** @var Php $this */
 /** @var Escaper $escaper */
 /** @var Bundle $block */
 
+/** @var ProductAttribute $productAttribute */
+$productAttribute = $block->getData('product_attribute');
 $product = $block->getProduct();
 $subline = $product->getData('quote_item_bundle_subline');
 $description = $product->getData('quote_item_bundle_description');
 ?>
-
-<?php if ($subline): ?>
-    <h2><?= $subline; ?></h2>
+<?php if (is_string($subline) && $subline !== ''): ?>
+    <h2><?= $escaper->escapeHtml($subline) ?></h2>
 <?php endif; ?>
-
-<?php if ($description): ?>
-    <div class="description"><?= $description; ?></div>
+<?php if (is_string($description) && $description !== ''): ?>
+    <div class="description">
+        <?= /* @noEscape */ $productAttribute->render($product, $description, 'quote_item_bundle_description') ?>
+    </div>
 <?php endif; ?>

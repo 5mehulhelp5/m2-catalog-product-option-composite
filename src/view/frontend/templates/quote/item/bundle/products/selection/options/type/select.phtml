@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
+/**
+ * @author      Andreas Knollmann
+ * @copyright   Copyright (c) 2014-2026 Softwareentwicklung Andreas Knollmann
+ * @license     http://www.opensource.org/licenses/mit-license.php MIT
+ */
+
 use Infrangible\CatalogProductOptionComposite\Block\Quote\Item\Bundle\Products\Selection\Options\Type\Select;
 use Magento\Catalog\Api\Data\ProductCustomOptionInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\View\TemplateEngine\Php;
-
-/**
- * @author      Andreas Knollmann
- * @copyright   2014-2025 Softwareentwicklung Andreas Knollmann
- * @license     http://www.opensource.org/licenses/mit-license.php MIT
- */
 
 /** @var Php $this */
 /** @var Escaper $escaper */
@@ -23,18 +23,21 @@ $hasContainer = $option->getType() == ProductCustomOptionInterface::OPTION_TYPE_
     $option->getType() == ProductCustomOptionInterface::OPTION_TYPE_CHECKBOX;
 $item = $block->getItem();
 $valuesHtml = $block->getValuesHtml();
+$itemId = $escaper->escapeHtmlAttr($item->getId());
+$optionId = $escaper->escapeHtmlAttr($option->getId());
+$containerId = sprintf('item-%s-options-%s-container', $itemId, $optionId);
 ?>
 
 <?php if ($valuesHtml): ?>
     <div class="field<?= /* @noEscape */ $class ?>">
-        <label class="label" for="select_<?= $escaper->escapeHtmlAttr($option->getId()); ?>">
+        <label class="label" for="cart_<?= /* @noEscape */ $itemId ?>_select_<?= /* @noEscape */ $optionId ?>">
             <span><?= $escaper->escapeHtml($option->getTitle()); ?></span>
         </label>
         <div class="control">
-            <?= $valuesHtml; ?>
+            <?= /* @noEscape */ $valuesHtml ?>
             <?php if ($option->getIsRequire()): ?>
                 <?php if ($hasContainer):?>
-                    <span id="item-<?= $escaper->escapeHtmlAttr($item->getId()); ?>-options-<?= $escaper->escapeHtmlAttr($option->getId()); ?>-container"></span>
+                    <span id="<?= /* @noEscape */ $containerId ?>"></span>
                 <?php endif; ?>
             <?php endif;?>
         </div>
